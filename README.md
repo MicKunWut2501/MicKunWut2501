@@ -1,5 +1,5 @@
 - 👋 Hi, I’m @MicKunWut2501
-- 👀 I’m interested in ... Data Analysis, Data Scienece, Development Cooperation and Sport 
+- 👀 I’m interested in ... Data Analysis, Data Science, Development Cooperation and Sports in general
 - 🌱 I’m currently learning ... RStudio 
 - 💞️ I’m looking to collaborate on ...not sure yet
 - 📫 How to reach me ... via e-mail

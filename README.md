@@ -1,4 +1,4 @@
-- 👋 Hi, I’m @MicKunWut2501
+- 👋 Hi, I’m @MicKunWut
 - 👀 I’m interested in ... Data Analysis, Data Science, Development Cooperation and Sports in general
 - 🌱 I’m currently learning ... RStudio 
 - 💞️ I’m looking to collaborate on ...not sure yet

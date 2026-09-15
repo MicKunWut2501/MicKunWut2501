@@ -157,8 +157,11 @@ and every send is logged in `whatsapp_messages`.
 - Owner login: michael.wuta@gmail.com (role `owner`), created via SQL with a temporary password given in chat; change it after first sign-in.
 - Public Supabase settings live in `fleet/.env.production` (committed on purpose: URL and anon key are public by design).
   Secrets (`SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ANTHROPIC_API_KEY`) go in the Vercel project settings only.
-- Vercel: project not yet created; requires the Vercel GitHub app on the MicKunWut2501 account, then
-  `create_git_project` with Root Directory `fleet`.
+- Vercel project **frota-luanda** (`prj_l1s1DsCTXwUONqcE3qCPvOWZDAuS`, team scope "mkw-limited"), linked to this repo,
+  Root Directory `fleet`, production branch `main` (every push to main redeploys). URL: https://frota-luanda.vercel.app.
+  Vercel Authentication was disabled so drivers reach the app's own login. Node 24, Turbopack build.
+  Secrets still to add in Vercel → Project → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`
+  (crons stay off until then), optionally `ANTHROPIC_API_KEY`.
 - Advisor items left on purpose: `is_staff`/`current_user_role`/`current_driver_id`/`generate_rent_alerts` are callable by
   signed-in users (RLS policies depend on the first three; the last one checks `is_staff()` internally). `btree_gist` in
   `public` is cosmetic. Enable "leaked password protection" in Auth settings when convenient.

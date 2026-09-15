@@ -6,7 +6,7 @@ Leia `../CONTEXT.md` para o esquema, convenções e regras de negócio.
 
 ## Arranque
 
-1. **Supabase**: crie um projecto, depois em *SQL Editor* execute, por ordem, `supabase/migrations/0001…0006`. Opcional: `supabase/seed.sql` (3 viaturas, 3 motoristas, pagamentos de exemplo).
+1. **Supabase**: crie um projecto, depois em *SQL Editor* execute, por ordem, `supabase/migrations/0001…0008`. Opcional: `supabase/seed.sql` (3 viaturas, 3 motoristas, pagamentos de exemplo).
    Com a CLI: `supabase link && supabase db push`.
 2. **Utilizador**: crie o seu utilizador em *Authentication → Users*. Depois promova-o:
    ```sql

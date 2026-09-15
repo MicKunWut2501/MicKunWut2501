@@ -21,7 +21,7 @@ plus an operations agent. Everything below describes real code.
 - Roles: `owner` > `admin` > `driver`. Owner/admin ("staff") see everything; drivers see only their own rows.
 - UI language: European Portuguese. Money always through `formatAOA`.
 
-## 2. Tables (all in `public`, migrations in `fleet/supabase/migrations/`)
+## 2. Tables (all in `public`, migrations 0001–0008 in `fleet/supabase/migrations/`; 0007/0008 are security hardening)
 
 | table | key columns | notes |
 | --- | --- | --- |
@@ -149,12 +149,26 @@ and every send is logged in `whatsapp_messages`.
   typecheck + lint + unit tests.
 - No new UI libraries: Tailwind + hand-written components; Recharts for charts; SheetJS (`xlsx`) for export.
 
-## 10. Environment
+## 10. Live infrastructure (set up 2026-09-15)
+
+- Supabase project **frota-luanda**, ref `mdlyfvqtrgaaorxwvlie`, region eu-west-1, org "MKW Limited" (free plan).
+  URL `https://mdlyfvqtrgaaorxwvlie.supabase.co`. Migrations 0001–0008 applied; `seed.sql` loaded (sample data, wipe with
+  `truncate public.rent_payments, public.maintenance_events, public.vehicle_downtime, public.cash_positions, public.rent_schedule, public.drivers, public.vehicles cascade;`).
+- Owner login: michael.wuta@gmail.com (role `owner`), created via SQL with a temporary password given in chat; change it after first sign-in.
+- Public Supabase settings live in `fleet/.env.production` (committed on purpose: URL and anon key are public by design).
+  Secrets (`SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ANTHROPIC_API_KEY`) go in the Vercel project settings only.
+- Vercel: project not yet created; requires the Vercel GitHub app on the MicKunWut2501 account, then
+  `create_git_project` with Root Directory `fleet`.
+- Advisor items left on purpose: `is_staff`/`current_user_role`/`current_driver_id`/`generate_rent_alerts` are callable by
+  signed-in users (RLS policies depend on the first three; the last one checks `is_staff()` internally). `btree_gist` in
+  `public` is cosmetic. Enable "leaked password protection" in Auth settings when convenient.
+
+## 11. Environment
 
 See `fleet/.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
 `CRON_SECRET`, `ANTHROPIC_API_KEY` (optional), `ANTHROPIC_MODEL`, `RECEIPT_EXTRACTOR`, `NEXT_PUBLIC_FLEET_NAME`.
 
-## 11. Known gaps / next steps
+## 12. Known gaps / next steps
 
 1. Auth is email + password only; no invite flow. Owner must create users in Supabase Auth and promote in /definicoes.
 2. No edit/delete UI for payments, events or schedules beyond "terminar atribuição" (do it in Supabase Studio for now).

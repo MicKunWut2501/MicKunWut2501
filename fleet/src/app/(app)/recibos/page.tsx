@@ -23,7 +23,7 @@ export default async function RecibosPage() {
 
   return (
     <>
-      <PageHeader title="Recibos e despesas" subtitle={staff ? "Cada despesa guardada tem viatura e categoria; alimenta o modelo vs realidade." : "Carregue recibos de despesas da viatura."} actions={<LinkButton href="/recibos/novo" variant="primary">Novo recibo</LinkButton>} />
+      <PageHeader title="Recibos e despesas" subtitle={staff ? "Cada despesa guardada tem viatura e categoria; alimenta o modelo vs realidade." : "Carregue recibos de despesas da viatura."} actions={staff ? <LinkButton href="/recibos/novo" variant="primary">Novo recibo</LinkButton> : undefined} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Últimos recibos carregados">
           {receipts.length ? (

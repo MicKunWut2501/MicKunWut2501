@@ -89,7 +89,7 @@ export default async function FrotaPage({ searchParams }: { searchParams: Promis
         <p className="mt-2 text-xs text-gray-500">Categorias: {Object.values(CATEGORY_LABELS).join(", ")}.</p>
       </Card>
 
-      <Card className="mt-6" title={`Scorecard de motoristas · últimas ${score.ranked[0]?.weeks ? 12 : 12} semanas`} right={<Link href="/motoristas" className="text-xs underline">detalhe</Link>}>
+      <Card className="mt-6" title="Scorecard de motoristas (janela de 12 semanas)" right={<Link href="/motoristas" className="text-xs underline">detalhe</Link>}>
         <Table>
           <thead><tr><th className={th}>#</th><th className={th}>Motorista</th><th className={thNum}>Pontuação</th><th className={th}>Tendência</th><th className={th}>Melhor factor</th><th className={th}>Pior factor</th></tr></thead>
           <tbody>

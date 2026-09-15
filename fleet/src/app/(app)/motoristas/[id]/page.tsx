@@ -8,7 +8,7 @@ import { getScorecard } from "@/lib/data/scorecard";
 import { getMessageLog, getPayments } from "@/lib/data/rent";
 import { CATEGORY_LABELS } from "@/lib/maintenance/categories";
 import { formatAOA, formatDate, formatDateTime, formatWeek } from "@/lib/format";
-import { addDays, luandaToday } from "@/lib/time";
+import { luandaToday } from "@/lib/time";
 import { num } from "@/lib/supabase/types";
 import type { RentStatus } from "@/lib/supabase/types";
 import type { ExpenseCategory } from "@/lib/maintenance/categories";
@@ -81,7 +81,6 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
           </ul>
         </Card>
       </div>
-      <p className="mt-4 text-xs text-gray-500">Semana de referência: {formatWeek(addDays(window.to, 0))}.</p>
     </>
   );
 }

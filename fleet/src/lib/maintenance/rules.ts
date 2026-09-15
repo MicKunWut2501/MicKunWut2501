@@ -63,8 +63,10 @@ export function evaluateRule(
     dateState = base.days_remaining < 0 ? "overdue" : base.days_remaining <= th.days_window ? "due" : "ok";
   }
   const rank: Record<DueState, number> = { ok: 0, due: 1, overdue: 2, never: 3 };
-  const states = [kmState, dateState].filter((s): s is DueState => s !== null);
-  const state = states.length ? states.reduce((a, b) => (rank[b] > rank[a] ? b : a)) : "ok";
+  const states: DueState[] = [];
+  if (kmState) states.push(kmState);
+  if (dateState) states.push(dateState);
+  const state: DueState = states.length ? states.reduce((a, b) => (rank[b] > rank[a] ? b : a)) : "ok";
 
   const parts: string[] = [];
   if (kmState) {

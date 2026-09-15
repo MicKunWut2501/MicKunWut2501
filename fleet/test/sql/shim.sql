@@ -28,3 +28,9 @@ create table if not exists storage.objects (
   owner uuid
 );
 alter table storage.objects enable row level security;
+
+-- Supabase grants these to app roles
+grant usage on schema auth to anon, authenticated, service_role;
+grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on function auth.role() to anon, authenticated, service_role;
+grant usage on schema storage to anon, authenticated, service_role;

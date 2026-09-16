@@ -40,6 +40,11 @@ export default async function SettingsPage() {
               <Field label="Car 4 private injection (Kz)"><input name="car4_private_injection_aoa" type="number" defaultValue={targets.car4_private_injection_aoa} className={inputCls} /></Field>
               <Field label="Passive income goal / month (Kz)"><input name="passive_income_goal_aoa_month" type="number" defaultValue={targets.passive_income_goal_aoa_month} className={inputCls} /></Field>
               <Field label="Fleet size target 2026"><input name="fleet_size_target_2026" type="number" defaultValue={targets.fleet_size_target_2026} className={inputCls} /></Field>
+              <Field label="Exchange rate (AOA per EUR)"><input name="fx_aoa_per_eur" type="number" step="0.01" defaultValue={targets.fx_aoa_per_eur} className={inputCls} /></Field>
+              <Field label="Loan instalment (EUR / month)"><input name="loan_installment_eur" type="number" step="0.01" defaultValue={targets.loan_installment_eur} className={inputCls} /></Field>
+              <Field label="Loan principal (EUR)"><input name="loan_principal_eur" type="number" step="0.01" defaultValue={targets.loan_principal_eur} className={inputCls} /></Field>
+              <Field label="Loan start"><input name="loan_start_date" type="date" defaultValue={targets.loan_start_date} className={inputCls} /></Field>
+              <Field label="Loan duration (months)"><input name="loan_months" type="number" defaultValue={targets.loan_months} className={inputCls} /></Field>
             </fieldset>
           </ActionForm>
         </Card>

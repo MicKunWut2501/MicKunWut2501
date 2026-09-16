@@ -23,7 +23,7 @@ export default async function ReceiptsPage() {
 
   return (
     <>
-      <PageHeader title="Receipts and expenses" subtitle={staff ? "Every saved expense has a vehicle and a category; it feeds the model vs actual figures." : "Upload receipts for vehicle expenses."} actions={staff ? <LinkButton href="/receipts/new" variant="primary">New receipt</LinkButton> : undefined} />
+      <PageHeader title="Receipts and expenses" subtitle={staff ? "Every saved expense has a vehicle and a category; it feeds the model vs actual figures." : "Upload receipts for vehicle expenses."} actions={staff ? <><LinkButton href="/receipts/bulk">Bulk categorise</LinkButton><LinkButton href="/receipts/new" variant="primary">New receipt</LinkButton></> : undefined} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Latest uploaded receipts">
           {receipts.length ? (

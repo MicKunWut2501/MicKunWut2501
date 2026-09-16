@@ -64,6 +64,11 @@ export async function getTargets(sb: SB): Promise<FleetTargets & { updated_at: s
     car4_private_injection_aoa: num(t.car4_private_injection_aoa),
     passive_income_goal_aoa_month: num(t.passive_income_goal_aoa_month),
     fleet_size_target_2026: t.fleet_size_target_2026,
+    fx_aoa_per_eur: num(t.fx_aoa_per_eur),
+    loan_installment_eur: num(t.loan_installment_eur),
+    loan_principal_eur: num(t.loan_principal_eur),
+    loan_start_date: t.loan_start_date,
+    loan_months: t.loan_months,
     updated_at: t.updated_at,
   };
 }

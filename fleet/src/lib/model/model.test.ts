@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aggregateFleet, car4Countdown, computeVehicleMonth, proRate, reserveRateForMonth,
+  aggregateFleet, car4Countdown, computeVehicleMonth, loanCoverage, proRate, reserveRateForMonth, toEur,
   type FleetTargets, type VehicleMonthFact,
 } from "./model";
 
@@ -14,6 +14,11 @@ const T: FleetTargets = {
   car4_private_injection_aoa: 12300000,
   passive_income_goal_aoa_month: 4000000,
   fleet_size_target_2026: 5,
+  fx_aoa_per_eur: 1300,
+  loan_installment_eur: 271.4,
+  loan_principal_eur: 20040.82,
+  loan_start_date: "2025-08-01",
+  loan_months: 96,
 };
 
 const fact = (o: Partial<VehicleMonthFact>): VehicleMonthFact => ({
@@ -80,6 +85,24 @@ describe("aggregateFleet", () => {
     expect(aug.net_per_car_aoa).toBe(Math.round(585000 / 1.5));
     expect(aug.cum_reserve_aoa).toBe(203500 + 203500 + Math.min(195000, Math.round(203500 * 0.5)));
     expect(aug.cum_target_reserve_aoa).toBe(203500 * 2 + Math.round(203500 * 0.5));
+  });
+});
+
+describe("loanCoverage", () => {
+  it("matches the workbook KPIs at 1 300 AOA/EUR", () => {
+    expect(toEur(1052000, 1300)).toBeCloseTo(809.23, 2);
+    const c = loanCoverage(T, 1052000, "2026-09-01");
+    expect(c.net_eur).toBeCloseTo(809.23, 2);
+    expect(c.coverage).toBeCloseTo(2.98, 2);
+    expect(c.surplus_eur).toBeCloseTo(537.83, 2);
+    expect(c.months_elapsed).toBe(14);
+    expect(c.months_remaining).toBe(82);
+    expect(c.remaining_eur).toBeCloseTo(82 * 271.4, 2);
+  });
+  it("clamps before the loan start and after the last instalment", () => {
+    expect(loanCoverage(T, 0, "2025-06-01").months_elapsed).toBe(0);
+    expect(loanCoverage(T, 0, "2040-01-01").months_remaining).toBe(0);
+    expect(loanCoverage({ ...T, loan_installment_eur: 0 }, 1000, "2026-01-01").coverage).toBeNull();
   });
 });
 

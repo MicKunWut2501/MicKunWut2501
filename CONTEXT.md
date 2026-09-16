@@ -21,7 +21,7 @@ plus an operations agent. Everything below describes real code.
 - Roles: `owner` > `admin` > `driver`. Owner/admin ("staff") see everything; drivers see only their own rows.
 - UI language: English (switched 2026-09-16). WhatsApp drafts to drivers stay in European Portuguese. Money always through `formatAOA`.
 
-## 2. Tables (all in `public`, migrations 0001–0009 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events)
+## 2. Tables (all in `public`, migrations 0001–0010 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`)
 
 | table | key columns | notes |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ plus an operations agent. Everything below describes real code.
 | `receipts` | `vehicle_id`, `storage_path`, `mime_type`, `uploaded_by`, `extraction` jsonb, `extraction_provider` | file lives in private bucket `receipts` |
 | `maintenance_events` | `vehicle_id` (not null), `receipt_id`, `event_date`, `category` (not null), `odometer_km`, `total_aoa`, `vendor`, `notes`, `line_items` jsonb | **single source of truth for expenses**; feeds the model |
 | `maintenance_rules` | `category` (unique), `every_km`, `every_months`, `active` | seeded: oil 5000 km/6 mo, brakes 20000 km, tyres 40000 km, insurance 12 mo, licensing 12 mo |
-| `fleet_targets` | single row id=1: `net_per_car_month_aoa` 351000, `free_cash_per_car_month_aoa` 147500, `reserve_rate_aoa_month` 203500, `inflation_rate_yearly` 0.20, `reserve_base_year` 2026, `car4_purchase_date`, `car4_private_injection_aoa` 12300000, `passive_income_goal_aoa_month` 4000000, `fleet_size_target_2026` 5 | owner-editable in /definicoes |
+| `fleet_targets` | single row id=1: `net_per_car_month_aoa` 351000, `free_cash_per_car_month_aoa` 147500, `reserve_rate_aoa_month` 203500, `inflation_rate_yearly` 0.20, `reserve_base_year` 2026, `car4_purchase_date`, `car4_private_injection_aoa` 12300000, `passive_income_goal_aoa_month` 4000000, `fleet_size_target_2026` 5, `fx_aoa_per_eur` 1300, `loan_installment_eur` 271.40, `loan_principal_eur` 20040.82, `loan_start_date` 2025-08-01, `loan_months` 96 | owner-editable in /settings |
 | `cash_positions` | `as_of`, `cash_aoa`, `note` | dashboard uses the latest row |
 | `score_weights` | single row: `on_time_pct` 40, `shortfall_pct` 25, `incidents_pct` 25, `downtime_pct` 10, `min_weeks` 4, `window_weeks` 12 | check: weights sum to 100 |
 | `agent_runs` | `kind` (rent_alerts / weekly_brief / receipt_extraction), `status`, `model`, `input`, `output`, tokens, `error` | log of every automation |
@@ -114,6 +114,8 @@ call SQL functions/views and hand plain rows to pure modules:
   netted). `free_cash = net − reserve`. Cumulative series are sums over months.
 - Net per car = fleet net / sum of prorates ("car-equivalents"). Collection rate = paid / expected.
 - Car 4: `injection_required = max(0, 12 300 000 − cumulative reserve − latest cash position)`.
+- EUR and loan (`loanCoverage`, `toEur`): net EUR = net AOA / `fx_aoa_per_eur`; coverage = net EUR / instalment; surplus = net EUR − instalment;
+  instalments elapsed counted from `loan_start_date` (inclusive of the month). Dashboard card uses the last full month; export adds Net (EUR), Loan coverage, Surplus columns.
 
 ### Scorecard rules (`src/lib/scorecard/score.ts`)
 
@@ -140,7 +142,7 @@ and every send is logged in `whatsapp_messages`.
 
 ## 9. Conventions
 
-- Routes: `/dashboard`, `/rent`, `/fleet`, `/fleet/[id]`, `/drivers`, `/drivers/[id]`, `/receipts`, `/receipts/new`, `/agent`, `/settings`, `/login`.
+- Routes: `/dashboard`, `/rent`, `/fleet`, `/fleet/[id]`, `/drivers`, `/drivers/[id]`, `/receipts`, `/receipts/new`, `/receipts/bulk` (tick rows → apply category/vendor; per-row odometer inputs), `/agent`, `/settings`, `/login`.
 - Folder layout: `src/app/(app)/<page>/page.tsx` (server), `actions.ts` (server actions, zod-validated, return
   `ActionResult`), client components alongside. Shared UI in `src/components/ui.tsx`; charts (Recharts) in `src/components/Charts.tsx`.
 - Naming: snake_case in DB and API JSON, camelCase in TS functions, `_aoa` money, `_km` distance.

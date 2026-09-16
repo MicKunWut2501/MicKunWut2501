@@ -19,6 +19,11 @@ const TargetsSchema = z.object({
   car4_private_injection_aoa: z.coerce.number().min(0),
   passive_income_goal_aoa_month: z.coerce.number().min(0),
   fleet_size_target_2026: z.coerce.number().int().min(1).max(100),
+  fx_aoa_per_eur: z.coerce.number().positive(),
+  loan_installment_eur: z.coerce.number().min(0),
+  loan_principal_eur: z.coerce.number().min(0),
+  loan_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  loan_months: z.coerce.number().int().min(1).max(600),
 });
 
 export async function updateTargets(_p: ActionResult | undefined, fd: FormData): Promise<ActionResult> {

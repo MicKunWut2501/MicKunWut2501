@@ -38,7 +38,7 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <PageHeader title={vehicle.plate} subtitle={`${vehicle.model} · in service since ${formatDate(vehicle.in_service_from)} · ${formatKm(vehicle.odometer_km)}`} actions={<Link href="/receipts/new" className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white">Log expense</Link>} />
+      <PageHeader title={vehicle.plate} subtitle={`${vehicle.model} · in service since ${formatDate(vehicle.in_service_from)} · ${formatKm(vehicle.odometer_km)}`} actions={<><Link href={`/receipts/bulk?vehicle=${id}`} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium">Bulk categorise</Link><Link href="/receipts/new" className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white">Log expense</Link></>} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Total cost logged" value={formatAOA(total)} sub={`${events.length} event(s)`} />

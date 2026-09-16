@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAOA, formatDate, formatMonth, formatPct, formatWeek } from "./format";
+import { formatAOA, formatDate, formatEUR, formatMonth, formatPct, formatWeek } from "./format";
 
 const N = " ";
 
@@ -15,6 +15,8 @@ describe("formatAOA", () => {
     expect(formatAOA(2500, { signed: true })).toBe(`+2${N}500${N}Kz`);
     expect(formatAOA(1234.5, { decimals: 2 })).toBe(`1${N}234,50${N}Kz`);
     expect(formatAOA(null)).toBe("—");
+    expect(formatEUR(809.2307, 2)).toBe(`809,23${N}€`);
+    expect(formatEUR(-1500)).toBe(`-1${N}500${N}€`);
   });
 });
 

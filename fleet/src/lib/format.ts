@@ -25,6 +25,14 @@ export function formatAOA(
   return `${sign}${body}${NBSP}Kz`;
 }
 
+/** 1234.5 -> "1 234,50 €" */
+export function formatEUR(value: number | null | undefined, decimals = 0): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const abs = Math.abs(value).toFixed(decimals);
+  const [intPart, frac] = abs.split(".");
+  return `${value < 0 ? "-" : ""}${groupThousands(intPart)}${frac ? "," + frac : ""}${NBSP}€`;
+}
+
 /** 0.873 -> "87%" ; with decimals 1 -> "87,3%" */
 export function formatPct(ratio: number | null | undefined, decimals = 0, signed = false): string {
   if (ratio === null || ratio === undefined || !Number.isFinite(ratio)) return "—";

@@ -1,7 +1,7 @@
 import "server-only";
 import type { SB } from "./fleet";
 import { getLatestCash, getTargets, getVehicles } from "./fleet";
-import { aggregateFleet, car4Countdown, computeVehicleMonth, type FleetMonth, type FleetTargets, type VehicleMonthResult } from "@/lib/model/model";
+import { aggregateFleet, car4Countdown, computeVehicleMonth, loanCoverage, type FleetMonth, type FleetTargets, type LoanCoverage, type VehicleMonthResult } from "@/lib/model/model";
 import type { VehicleMonthFactRow } from "@/lib/supabase/types";
 import { num } from "@/lib/supabase/types";
 import { luandaToday, monthStartOf } from "@/lib/time";
@@ -17,6 +17,8 @@ export type ModelVsActual = {
   cash_as_of: string | null;
   car4: ReturnType<typeof car4Countdown>;
   goal_progress: number | null; // fleet net this month / passive income goal
+  loan_this_month: LoanCoverage | null;
+  loan_last_full_month: LoanCoverage | null;
 };
 
 export async function getVehicleMonthFacts(sb: SB, from: string, to: string): Promise<VehicleMonthFactRow[]> {
@@ -48,5 +50,7 @@ export async function getModelVsActual(sb: SB, today = luandaToday()): Promise<M
     today, targets, vehicleMonths, fleetMonths, thisMonth, lastFullMonth,
     cash_on_hand_aoa: cash?.cash_aoa ?? 0, cash_as_of: cash?.as_of ?? null, car4,
     goal_progress: thisMonth && targets.passive_income_goal_aoa_month > 0 ? thisMonth.net_aoa / targets.passive_income_goal_aoa_month : null,
+    loan_this_month: thisMonth ? loanCoverage(targets, thisMonth.net_aoa, thisMonth.month) : null,
+    loan_last_full_month: lastFullMonth ? loanCoverage(targets, lastFullMonth.net_aoa, lastFullMonth.month) : null,
   };
 }

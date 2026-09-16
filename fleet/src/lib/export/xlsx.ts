@@ -3,6 +3,7 @@ import type { ModelVsActual } from "@/lib/data/model";
 import type { WeekStatusRow, MaintenanceEvent, RentPayment, Vehicle, Driver } from "@/lib/supabase/types";
 import type { RankedDriver } from "@/lib/data/scorecard";
 import { CATEGORY_LABELS } from "@/lib/maintenance/categories";
+import { loanCoverage, toEur } from "@/lib/model/model";
 
 export type ExportInput = {
   generatedAt: string;
@@ -49,6 +50,7 @@ export function buildWorkbook(i: ExportInput): XLSX.WorkBook {
     "Net per car (Kz)": n(m.net_per_car_aoa), "Target per car (Kz)": n(m.target_net_per_car_aoa),
     "Reserve (Kz)": n(m.reserve_aoa), "Model reserve (Kz)": n(m.target_reserve_aoa), "Cumulative reserve (Kz)": n(m.cum_reserve_aoa), "Cumulative model reserve (Kz)": n(m.cum_target_reserve_aoa),
     "Free cash (Kz)": n(m.free_cash_aoa), "Model free cash (Kz)": n(m.target_free_cash_aoa),
+    "Net (EUR)": n(toEur(m.net_aoa, t.fx_aoa_per_eur)), "Loan coverage": n(loanCoverage(t, m.net_aoa, m.month).coverage), "Surplus after loan (EUR)": n(loanCoverage(t, m.net_aoa, m.month).surplus_eur),
   }));
   const vehicleRows = i.model.vehicleMonths.map((v) => ({
     Level: "Vehicle", Month: v.month, Vehicle: v.plate, "Car-equivalents": n(v.prorate),
@@ -61,11 +63,12 @@ export function buildWorkbook(i: ExportInput): XLSX.WorkBook {
   const header = [
     ["Model vs Actual", "generated", i.generatedAt],
     ["Target net/car/month", t.net_per_car_month_aoa, "Free cash/car/month", t.free_cash_per_car_month_aoa, "Reserve/car/month", t.reserve_rate_aoa_month, "Inflation", t.inflation_rate_yearly],
+    ["FX AOA/EUR", t.fx_aoa_per_eur, "Loan instalment EUR", t.loan_installment_eur, "Loan principal EUR", t.loan_principal_eur, "Loan start", t.loan_start_date, "Months", t.loan_months],
     ["Car 4", t.car4_purchase_date, "Planned injection", t.car4_private_injection_aoa, "Cumulative reserve", i.model.car4.reserve_balance_aoa, "Cash on hand", i.model.car4.cash_on_hand_aoa, "Injection required", i.model.car4.injection_required_aoa, "Days", i.model.car4.days_remaining],
     [],
   ];
   const ws = XLSX.utils.aoa_to_sheet(header);
-  XLSX.utils.sheet_add_json(ws, [...fleetRows, ...vehicleRows], { origin: "A5" });
+  XLSX.utils.sheet_add_json(ws, [...fleetRows, ...vehicleRows], { origin: "A6" });
   XLSX.utils.book_append_sheet(wb, ws, "Model vs Actual");
 
   const score = i.scorecard.map((d, idx) => ({

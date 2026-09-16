@@ -21,7 +21,44 @@ export type FleetTargets = {
   car4_private_injection_aoa: number;
   passive_income_goal_aoa_month: number;
   fleet_size_target_2026: number;
+  fx_aoa_per_eur: number;
+  loan_installment_eur: number;
+  loan_principal_eur: number;
+  loan_start_date: string;
+  loan_months: number;
 };
+
+export type LoanCoverage = {
+  net_eur: number;
+  installment_eur: number;
+  coverage: number | null; // net / installment
+  surplus_eur: number;
+  months_elapsed: number;
+  months_remaining: number;
+  remaining_eur: number; // instalments still to pay
+};
+
+export function toEur(aoa: number, fx: number): number {
+  return fx > 0 ? aoa / fx : 0;
+}
+
+/** Loan KPIs for one month of fleet net (the workbook's "Coverage Loan installment" and "Monthly Surplus"). */
+export function loanCoverage(t: FleetTargets, netAoa: number, month: string): LoanCoverage {
+  const net = toEur(netAoa, t.fx_aoa_per_eur);
+  const [sy, sm] = t.loan_start_date.slice(0, 10).split("-").map(Number);
+  const [my, mm] = month.slice(0, 10).split("-").map(Number);
+  const elapsed = Math.max(0, Math.min(t.loan_months, (my - sy) * 12 + (mm - sm) + 1));
+  const remaining = Math.max(0, t.loan_months - elapsed);
+  return {
+    net_eur: net,
+    installment_eur: t.loan_installment_eur,
+    coverage: t.loan_installment_eur > 0 ? net / t.loan_installment_eur : null,
+    surplus_eur: net - t.loan_installment_eur,
+    months_elapsed: elapsed,
+    months_remaining: remaining,
+    remaining_eur: remaining * t.loan_installment_eur,
+  };
+}
 
 export type VehicleMonthFact = {
   vehicle_id: string;

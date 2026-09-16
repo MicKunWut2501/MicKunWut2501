@@ -43,7 +43,7 @@ export type MaintenanceRuleRow = {
 export type FleetTargetsRow = {
   id: number; net_per_car_month_aoa: number; free_cash_per_car_month_aoa: number; reserve_rate_aoa_month: number; inflation_rate_yearly: number;
   reserve_base_year: number; car4_purchase_date: string; car4_private_injection_aoa: number; passive_income_goal_aoa_month: number;
-  fleet_size_target_2026: number; updated_at: string;
+  fleet_size_target_2026: number; fx_aoa_per_eur: number; loan_installment_eur: number; loan_principal_eur: number; loan_start_date: string; loan_months: number; updated_at: string;
 };
 export type CashPosition = { id: string; as_of: string; cash_aoa: number; note: string | null; created_at: string };
 export type ScoreWeightsRow = {

@@ -7,7 +7,7 @@ import { getModelVsActual } from "@/lib/data/model";
 import { getWeekStatus, getWeekStatusRange, getPayments } from "@/lib/data/rent";
 import { getVehicles } from "@/lib/data/fleet";
 import { getReminders } from "@/lib/data/maintenance";
-import { formatAOA, formatDate, formatDateTime, formatMonth, formatPct, formatWeek } from "@/lib/format";
+import { formatAOA, formatDate, formatDateTime, formatEUR, formatMonth, formatPct, formatWeek } from "@/lib/format";
 import { addDays, luandaToday, weekStartOf } from "@/lib/time";
 import { delta } from "@/lib/model/model";
 import type { AgentRun } from "@/lib/supabase/types";
@@ -87,7 +87,21 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <Card title={`Loan coverage · ${model.lastFullMonth ? formatMonth(model.lastFullMonth.month) : "—"} (last full month)`}>
+          {model.loan_last_full_month ? (
+            <>
+              <div className="text-3xl font-semibold tabular">{model.loan_last_full_month.coverage === null ? "—" : `${model.loan_last_full_month.coverage.toFixed(2)}×`}</div>
+              <p className="mt-1 text-xs text-gray-500">fleet net {formatEUR(model.loan_last_full_month.net_eur, 2)} vs instalment {formatEUR(model.loan_last_full_month.installment_eur, 2)} at {t.fx_aoa_per_eur} AOA/EUR</p>
+              <dl className="mt-3 space-y-1 text-sm">
+                <Row k="Monthly surplus after instalment" v={formatEUR(model.loan_last_full_month.surplus_eur, 2)} strong />
+                <Row k="This month so far" v={model.loan_this_month ? `${formatEUR(model.loan_this_month.net_eur, 2)} · ${model.loan_this_month.coverage === null ? "—" : model.loan_this_month.coverage.toFixed(2) + "×"}` : "—"} />
+                <Row k="Instalments paid / left" v={`${model.loan_last_full_month.months_elapsed} / ${model.loan_last_full_month.months_remaining}`} />
+                <Row k="Still to repay" v={formatEUR(model.loan_last_full_month.remaining_eur)} />
+              </dl>
+            </>
+          ) : <Empty>No completed month yet.</Empty>}
+        </Card>
         <Card title="Car 4 · countdown">
           <div className="text-3xl font-semibold tabular">
             {model.car4.months_remaining} <span className="text-base font-normal text-gray-500">months</span> {model.car4.days_after_months} <span className="text-base font-normal text-gray-500">days</span>

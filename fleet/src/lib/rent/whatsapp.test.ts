@@ -15,7 +15,7 @@ describe("buildRentMessage", () => {
     });
     expect(m).toContain("Bom dia, Manuel.");
     expect(m).toContain("LD-02-02-BB");
-    expect(m).toContain("3–9 ago");
+    expect(m).toContain("03/08/2026 a 09/08/2026");
     expect(m).toContain("35 000 Kz");
     expect(m).toContain("até 12/08/2026");
     expect(m).not.toContain("não registámos qualquer pagamento");

@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const sb = createAdminClient();
   const { data, error } = await sb.rpc("generate_rent_alerts");
   await sb.from("agent_runs").insert({
-    kind: "rent_alerts", status: error ? "error" : "ok", output: error ? null : `${data} alerta(s)`, error: error?.message ?? null,
+    kind: "rent_alerts", status: error ? "error" : "ok", output: error ? null : `${data} alert(s)`, error: error?.message ?? null,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, alerts: data });

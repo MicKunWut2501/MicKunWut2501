@@ -8,10 +8,10 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <form action={action} className="mt-4 space-y-3">
       <input type="hidden" name="next" value={next} />
-      <Field label="E-mail"><input name="email" type="email" autoComplete="email" required className={inputCls} /></Field>
-      <Field label="Palavra-passe"><input name="password" type="password" autoComplete="current-password" required className={inputCls} /></Field>
+      <Field label="Email"><input name="email" type="email" autoComplete="email" required className={inputCls} /></Field>
+      <Field label="Password"><input name="password" type="password" autoComplete="current-password" required className={inputCls} /></Field>
       {state?.error && <Notice kind="error">{state.error}</Notice>}
-      <Button type="submit" disabled={pending} className="w-full">{pending ? "A entrar…" : "Entrar"}</Button>
+      <Button type="submit" disabled={pending} className="w-full">{pending ? "Signing in…" : "Sign in"}</Button>
     </form>
   );
 }

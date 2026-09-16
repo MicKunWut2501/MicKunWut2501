@@ -26,32 +26,32 @@ export type BriefResult = {
   tokens_out: number | null;
 };
 
-const SYSTEM = `És o assistente de operações de uma pequena frota de táxis Yango em Luanda (Suzuki S-Presso, renda semanal fixa por motorista, em kwanzas).
-Escreves em português europeu, tom directo e prático, para o dono da frota. Não inventes números: usa apenas os dados fornecidos.
-Formato: título com a semana; 3 a 6 frases de situação (cobrança, custos, modelo vs realidade); depois "Acções para esta semana:" com 3 a 5 pontos accionáveis e ordenados por impacto financeiro. Máximo 220 palavras. Sem markdown além de listas com "-".`;
+const SYSTEM = `You are the operations assistant of a small Yango ride-hailing fleet in Luanda, Angola (Suzuki S-Presso cars, fixed weekly rent per driver, amounts in Angolan kwanza "Kz").
+Write in English, direct and practical, for the fleet owner. Never invent numbers: use only the data provided.
+Format: a title with the week; 3 to 6 sentences on the situation (collection, costs, model vs actual); then "Actions for this week:" with 3 to 5 actionable points ordered by financial impact. Maximum 220 words. No markdown other than "-" lists.`;
 
 export function renderBriefFacts(i: BriefInput): string {
   const lines: string[] = [];
-  lines.push(`Semana analisada: ${formatWeek(i.week_start)} (segunda a domingo).`);
+  lines.push(`Week analysed: ${formatWeek(i.week_start)} (Monday to Sunday).`);
   for (const w of i.week) {
-    lines.push(`- ${w.driver_name} / ${w.plate}: ${w.status}, esperado ${formatAOA(w.expected_aoa)}, pago ${formatAOA(w.paid_aoa)}, em falta ${formatAOA(w.outstanding_aoa)}.`);
+    lines.push(`- ${w.driver_name} / ${w.plate}: ${w.status}, expected ${formatAOA(w.expected_aoa)}, paid ${formatAOA(w.paid_aoa)}, outstanding ${formatAOA(w.outstanding_aoa)}.`);
   }
   const expected = i.week.reduce((a, w) => a + Number(w.expected_aoa), 0);
   const paid = i.week.reduce((a, w) => a + Number(w.paid_aoa), 0);
-  lines.push(`Taxa de cobrança da semana: ${expected > 0 ? formatPct(paid / expected) : "—"}.`);
+  lines.push(`Collection rate for the week: ${expected > 0 ? formatPct(paid / expected) : "—"}.`);
   if (i.month) {
     const m = i.month;
     lines.push(
-      `Mês ${formatMonth(m.month)} até à data: renda cobrada ${formatAOA(m.rent_paid_aoa)}, despesas ${formatAOA(m.expenses_aoa)}, ` +
-        `líquido ${formatAOA(m.net_aoa)} (objectivo ${formatAOA(m.target_net_aoa)}), líquido por carro ${formatAOA(m.net_per_car_aoa)} ` +
-        `vs objectivo ${formatAOA(m.target_net_per_car_aoa)}, reserva acumulada ${formatAOA(m.cum_reserve_aoa)} vs modelo ${formatAOA(m.cum_target_reserve_aoa)}.`,
+      `Month ${formatMonth(m.month)} to date: rent collected ${formatAOA(m.rent_paid_aoa)}, expenses ${formatAOA(m.expenses_aoa)}, ` +
+        `net ${formatAOA(m.net_aoa)} (target ${formatAOA(m.target_net_aoa)}), net per car ${formatAOA(m.net_per_car_aoa)} ` +
+        `vs target ${formatAOA(m.target_net_per_car_aoa)}, cumulative reserve ${formatAOA(m.cum_reserve_aoa)} vs model ${formatAOA(m.cum_target_reserve_aoa)}.`,
     );
   }
-  const due = i.reminders.flatMap((r) => r.items.filter((x) => x.state !== "ok").map((x) => `${r.plate}: ${x.label} ${x.state === "never" ? "sem registo" : x.state === "overdue" ? "EM ATRASO" : "a vencer"} (${x.reason})`));
-  if (due.length) lines.push(`Manutenção: ${due.join("; ")}.`);
+  const due = i.reminders.flatMap((r) => r.items.filter((x) => x.state !== "ok").map((x) => `${r.plate}: ${x.label} ${x.state === "never" ? "no record" : x.state === "overdue" ? "OVERDUE" : "due soon"} (${x.reason})`));
+  if (due.length) lines.push(`Maintenance: ${due.join("; ")}.`);
   const ranked = i.scores.filter((s) => s.score !== null);
   if (ranked.length) lines.push(`Scorecard: ${ranked.map((s) => `${s.driver_name} ${s.score}`).join(", ")}.`);
-  lines.push(`Carro 4: faltam ${i.car4.days_remaining} dias; injecção privada ainda necessária ${formatAOA(i.car4.injection_required_aoa)}.`);
+  lines.push(`Car 4: ${i.car4.days_remaining} days to go; private injection still required ${formatAOA(i.car4.injection_required_aoa)}.`);
   return lines.join("\n");
 }
 
@@ -59,13 +59,13 @@ export function renderBriefFacts(i: BriefInput): string {
 export function templateBrief(i: BriefInput): string {
   const problems = i.week.filter((w) => w.status === "PARTIAL" || w.status === "MISSED");
   const actions: string[] = [];
-  for (const p of problems) actions.push(`- Cobrar ${formatAOA(p.outstanding_aoa)} a ${p.driver_name} (${p.plate}) via WhatsApp.`);
-  for (const r of i.reminders) for (const x of r.items) if (x.state === "overdue") actions.push(`- Agendar ${x.label.toLowerCase()} da ${r.plate} (${x.reason}).`);
+  for (const p of problems) actions.push(`- Collect ${formatAOA(p.outstanding_aoa)} from ${p.driver_name} (${p.plate}) via WhatsApp.`);
+  for (const r of i.reminders) for (const x of r.items) if (x.state === "overdue") actions.push(`- Book ${x.label.toLowerCase()} for ${r.plate} (${x.reason}).`);
   if (i.month && i.month.net_per_car_aoa !== null && i.month.net_per_car_aoa < i.month.target_net_per_car_aoa) {
-    actions.push(`- Líquido por carro abaixo do objectivo: rever despesas do mês (${formatAOA(i.month.expenses_aoa)}).`);
+    actions.push(`- Net per car is below target: review this month's expenses (${formatAOA(i.month.expenses_aoa)}).`);
   }
-  if (!actions.length) actions.push("- Sem pendências: manter o ritmo de cobrança e registar recibos da semana.");
-  return `Resumo semanal — ${formatWeek(i.week_start)}\n\n${renderBriefFacts(i)}\n\nAcções para esta semana:\n${actions.slice(0, 5).join("\n")}`;
+  if (!actions.length) actions.push("- Nothing outstanding: keep the collection rhythm and log this week's receipts.");
+  return `Weekly brief — ${formatWeek(i.week_start)}\n\n${renderBriefFacts(i)}\n\nActions for this week:\n${actions.slice(0, 5).join("\n")}`;
 }
 
 export async function generateWeeklyBrief(input: BriefInput): Promise<BriefResult> {
@@ -78,7 +78,7 @@ export async function generateWeeklyBrief(input: BriefInput): Promise<BriefResul
       model,
       max_tokens: 2048,
       system: SYSTEM,
-      messages: [{ role: "user", content: `Dados da frota:\n${renderBriefFacts(input)}\n\nEscreve o resumo semanal.` }],
+      messages: [{ role: "user", content: `Fleet data:\n${renderBriefFacts(input)}\n\nWrite the weekly brief.` }],
     });
     if (response.stop_reason === "refusal") {
       return { text: templateBrief(input), provider: "template", model, tokens_in: null, tokens_out: null };

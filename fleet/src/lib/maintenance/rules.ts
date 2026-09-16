@@ -48,7 +48,7 @@ export function evaluateRule(
     days_remaining: null,
     reason: "",
   };
-  if (!last) return { ...base, state: "never", reason: "Sem registo desta categoria" };
+  if (!last) return { ...base, state: "never", reason: "No record of this category yet" };
 
   let kmState: DueState | null = null;
   if (rule.every_km && last.odometer_km != null && ctx.odometerKm != null) {
@@ -72,18 +72,18 @@ export function evaluateRule(
   if (kmState) {
     parts.push(
       base.km_remaining! < 0
-        ? `${Math.abs(base.km_remaining!)} km em atraso`
-        : `faltam ${base.km_remaining} km`,
+        ? `${Math.abs(base.km_remaining!)} km overdue`
+        : `${base.km_remaining} km to go`,
     );
   }
   if (dateState) {
     parts.push(
       base.days_remaining! < 0
-        ? `${Math.abs(base.days_remaining!)} dias em atraso`
-        : `faltam ${base.days_remaining} dias`,
+        ? `${Math.abs(base.days_remaining!)} days overdue`
+        : `${base.days_remaining} days to go`,
     );
   }
-  return { ...base, state, reason: parts.join(" · ") || "Sem intervalo aplicável" };
+  return { ...base, state, reason: parts.join(" · ") || "No applicable interval" };
 }
 
 export function evaluateVehicle(

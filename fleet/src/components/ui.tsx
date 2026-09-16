@@ -47,7 +47,7 @@ const STATUS_STYLES: Record<RentStatus, string> = {
   EXEMPT: "bg-sky-100 text-sky-800",
 };
 const STATUS_LABELS: Record<RentStatus, string> = {
-  PAID: "Pago", PARTIAL: "Parcial", MISSED: "Em falta", PENDING: "Pendente", EXEMPT: "Isento",
+  PAID: "Paid", PARTIAL: "Partial", MISSED: "Missed", PENDING: "Pending", EXEMPT: "Exempt",
 };
 
 export function StatusBadge({ status }: { status: RentStatus }) {
@@ -60,7 +60,7 @@ const DUE_STYLES: Record<DueState, string> = {
   overdue: "bg-red-50 text-red-800 border-red-200",
   never: "bg-gray-50 text-gray-600 border-gray-200",
 };
-const DUE_LABELS: Record<DueState, string> = { ok: "OK", due: "A vencer", overdue: "Em atraso", never: "Sem registo" };
+const DUE_LABELS: Record<DueState, string> = { ok: "OK", due: "Due soon", overdue: "Overdue", never: "No record" };
 
 export function DueChip({ label, state, reason }: { label: string; state: DueState; reason: string }) {
   return (

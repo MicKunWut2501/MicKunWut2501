@@ -4,16 +4,16 @@ export const EXPENSE_CATEGORIES = [
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
-  fuel: "Combustível",
-  oil_service: "Óleo / revisão",
-  tyres: "Pneus",
-  brakes: "Travões",
-  repair: "Reparação",
-  insurance: "Seguro",
-  licensing: "Licenciamento",
-  wash: "Lavagem",
-  fine: "Multa",
-  other: "Outro",
+  fuel: "Fuel",
+  oil_service: "Oil / service",
+  tyres: "Tyres",
+  brakes: "Brakes",
+  repair: "Repair",
+  insurance: "Insurance",
+  licensing: "Licensing",
+  wash: "Wash",
+  fine: "Fine",
+  other: "Other",
 };
 
 /** Categories that count as driver-attributable incidents in the scorecard. */

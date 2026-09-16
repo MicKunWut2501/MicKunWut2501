@@ -27,12 +27,12 @@ export function isStaff(s: Session): boolean {
 /** Owner/admin only pages. Drivers are sent to their own panel. */
 export async function requireStaff(): Promise<Session> {
   const s = await requireUser();
-  if (!isStaff(s)) redirect("/painel");
+  if (!isStaff(s)) redirect("/dashboard");
   return s;
 }
 
 export async function requireOwner(): Promise<Session> {
   const s = await requireUser();
-  if (s.profile.role !== "owner") redirect("/painel");
+  if (s.profile.role !== "owner") redirect("/dashboard");
   return s;
 }

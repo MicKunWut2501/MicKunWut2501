@@ -19,12 +19,12 @@ describe("xlsx export", () => {
         car4: car4Countdown({ today: "2026-09-15", purchaseDate: "2026-12-01", injectionAoa: 12300000, reserveBalanceAoa: 203500, cashOnHandAoa: 0 }) },
     };
     const wb = buildWorkbook(input);
-    expect(wb.SheetNames).toEqual(["Cobrança", "Pagamentos", "Despesas", "Model vs Actual", "Scorecard", "Viaturas"]);
+    expect(wb.SheetNames).toEqual(["Rent", "Payments", "Expenses", "Model vs Actual", "Scorecard", "Vehicles"]);
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets["Model vs Actual"], { range: 4 });
     expect(rows).toHaveLength(2);
-    expect(rows[0]["Nível"]).toBe("Frota");
-    expect(rows[0]["Líquido (Kz)"]).toBe(350000);
-    expect(rows[1]["Viatura"]).toBe("P");
+    expect(rows[0]["Level"]).toBe("Fleet");
+    expect(rows[0]["Net (Kz)"]).toBe(350000);
+    expect(rows[1]["Vehicle"]).toBe("P");
     const buf = workbookToBuffer(wb);
     expect(buf.length).toBeGreaterThan(1000);
   });

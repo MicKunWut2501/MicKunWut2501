@@ -18,8 +18,8 @@ export function NetPerCarChart({ data }: { data: { month: string; actual: number
         <YAxis tickFormatter={kz} tick={{ fontSize: 12 }} width={48} />
         <Tooltip formatter={tooltipAOA} />
         <Legend />
-        <Line type="monotone" dataKey="actual" name="Líquido por carro (real)" stroke={COLORS[1]} strokeWidth={2} dot connectNulls={false} />
-        <Line type="monotone" dataKey="target" name="Objectivo" stroke={COLORS[0]} strokeDasharray="6 4" strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="actual" name="Net per car (actual)" stroke={COLORS[1]} strokeWidth={2} dot connectNulls={false} />
+        <Line type="monotone" dataKey="target" name="Target" stroke={COLORS[0]} strokeDasharray="6 4" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -34,8 +34,8 @@ export function ReserveChart({ data }: { data: { month: string; actual: number; 
         <YAxis tickFormatter={kz} tick={{ fontSize: 12 }} width={48} />
         <Tooltip formatter={tooltipAOA} />
         <Legend />
-        <Line type="monotone" dataKey="actual" name="Reserva acumulada (real)" stroke={COLORS[2]} strokeWidth={2} />
-        <Line type="monotone" dataKey="model" name="Reserva segundo o modelo" stroke={COLORS[0]} strokeDasharray="6 4" strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="actual" name="Cumulative reserve (actual)" stroke={COLORS[2]} strokeWidth={2} />
+        <Line type="monotone" dataKey="model" name="Reserve per model" stroke={COLORS[0]} strokeDasharray="6 4" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -68,7 +68,7 @@ export function FleetCompareChart({ rows, average }: { rows: { plate: string; to
         <XAxis dataKey="plate" tick={{ fontSize: 12 }} />
         <YAxis tickFormatter={kz} tick={{ fontSize: 12 }} width={48} />
         <Tooltip formatter={tooltipAOA} />
-        <Bar dataKey="total_aoa" name={`Custo do mês (média ${formatAOA(average)})`}>
+        <Bar dataKey="total_aoa" name={`Month cost (fleet average ${formatAOA(average)})`}>
           {rows.map((r) => (
             <Cell key={r.plate} fill={r.outlier ? COLORS[4] : COLORS[1]} />
           ))}

@@ -93,7 +93,7 @@ export class AnthropicReceiptExtractor implements ReceiptExtractor {
 
     const usage = { model: response.model, input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens };
     if (response.stop_reason === "refusal" || !response.parsed_output) {
-      return { ...emptyDraft("anthropic"), notes: "A extracção automática não devolveu dados; preencha manualmente.", usage };
+      return { ...emptyDraft("anthropic"), notes: "Automatic extraction returned nothing; fill the form manually.", usage };
     }
     const p = response.parsed_output;
     return {
@@ -107,7 +107,7 @@ export class AnthropicReceiptExtractor implements ReceiptExtractor {
       confidence: p.confidence,
       provider: "anthropic",
       notes: p.currency.toUpperCase() !== "AOA" && p.total != null
-        ? `Total lido: ${p.total} ${p.currency}. Converta para AOA manualmente.${p.notes ? " " + p.notes : ""}`
+        ? `Total read: ${p.total} ${p.currency}. Convert to AOA manually.${p.notes ? " " + p.notes : ""}`
         : p.notes,
       usage,
     };
@@ -126,13 +126,13 @@ export async function extractReceipt(file: ReceiptFile): Promise<ReceiptDraft> {
     return await extractor.extract(file);
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError) {
-      return { ...emptyDraft("none"), notes: "Chave ANTHROPIC_API_KEY inválida; extracção desactivada." };
+      return { ...emptyDraft("none"), notes: "Invalid ANTHROPIC_API_KEY; extraction disabled." };
     }
     if (err instanceof Anthropic.RateLimitError) {
-      return { ...emptyDraft("none"), notes: "Limite da API atingido; tente de novo dentro de instantes." };
+      return { ...emptyDraft("none"), notes: "API rate limit reached; try again in a moment." };
     }
     if (err instanceof Anthropic.APIError) {
-      return { ...emptyDraft("none"), notes: `Erro da API (${err.status}); preencha manualmente.` };
+      return { ...emptyDraft("none"), notes: `API error (${err.status}); fill the form manually.` };
     }
     throw err;
   }

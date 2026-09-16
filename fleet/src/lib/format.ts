@@ -38,12 +38,12 @@ export function formatKm(km: number | null | undefined): string {
   return `${groupThousands(String(Math.round(km)))}${NBSP}km`;
 }
 
-const MONTHS_PT = [
-  "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
-const MONTHS_PT_LONG = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+const MONTHS_LONG = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 /** "2026-08-03" -> "03/08/2026" */
@@ -53,26 +53,26 @@ export function formatDate(iso: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
-/** "2026-08-03" -> "3 ago" */
+/** "2026-08-03" -> "3 Aug" */
 export function formatDateShort(iso: string): string {
   const [, m, d] = iso.slice(0, 10).split("-");
-  return `${Number(d)} ${MONTHS_PT[Number(m) - 1]}`;
+  return `${Number(d)} ${MONTHS[Number(m) - 1]}`;
 }
 
-/** "2026-08-01" -> "ago 2026" ; long -> "agosto de 2026" */
+/** "2026-08-01" -> "Aug 2026" ; long -> "August 2026" */
 export function formatMonth(iso: string, long = false): string {
   const [y, m] = iso.slice(0, 10).split("-");
   const idx = Number(m) - 1;
-  return long ? `${MONTHS_PT_LONG[idx]} de ${y}` : `${MONTHS_PT[idx]} ${y}`;
+  return long ? `${MONTHS_LONG[idx]} ${y}` : `${MONTHS[idx]} ${y}`;
 }
 
-/** Monday iso -> "3–9 ago" */
+/** Monday iso -> "3–9 Aug" */
 export function formatWeek(weekStart: string): string {
   const end = addDaysIso(weekStart, 6);
   const [, m1, d1] = weekStart.split("-");
   const [, m2, d2] = end.split("-");
-  if (m1 === m2) return `${Number(d1)}–${Number(d2)} ${MONTHS_PT[Number(m1) - 1]}`;
-  return `${Number(d1)} ${MONTHS_PT[Number(m1) - 1]} – ${Number(d2)} ${MONTHS_PT[Number(m2) - 1]}`;
+  if (m1 === m2) return `${Number(d1)}–${Number(d2)} ${MONTHS[Number(m1) - 1]}`;
+  return `${Number(d1)} ${MONTHS[Number(m1) - 1]} – ${Number(d2)} ${MONTHS[Number(m2) - 1]}`;
 }
 
 /** "2026-08-05T09:12:00+00:00" -> "05/08/2026 10:12" (Luanda, UTC+1) */

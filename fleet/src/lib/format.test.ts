@@ -19,12 +19,12 @@ describe("formatAOA", () => {
 });
 
 describe("dates", () => {
-  it("formats pt-PT style", () => {
+  it("formats dd/mm/yyyy with English month names", () => {
     expect(formatDate("2026-08-03")).toBe("03/08/2026");
-    expect(formatMonth("2026-08-01")).toBe("ago 2026");
-    expect(formatMonth("2026-08-01", true)).toBe("agosto de 2026");
-    expect(formatWeek("2026-08-03")).toBe("3–9 ago");
-    expect(formatWeek("2026-08-31")).toBe("31 ago – 6 set");
+    expect(formatMonth("2026-08-01")).toBe("Aug 2026");
+    expect(formatMonth("2026-08-01", true)).toBe("August 2026");
+    expect(formatWeek("2026-08-03")).toBe("3–9 Aug");
+    expect(formatWeek("2026-08-31")).toBe("31 Aug – 6 Sep");
     expect(formatPct(0.873)).toBe("87%");
     expect(formatPct(-0.125, 1, true)).toBe("-12,5%");
   });

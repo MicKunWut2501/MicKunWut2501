@@ -1,4 +1,5 @@
-import { formatAOA, formatDate, formatWeek } from "@/lib/format";
+import { formatAOA, formatDate } from "@/lib/format";
+import { addDays } from "@/lib/time";
 
 export type RentMessageInput = {
   driverName: string;
@@ -23,7 +24,7 @@ function firstName(full: string): string {
  */
 export function buildRentMessage(i: RentMessageInput): string {
   const name = firstName(i.driverName);
-  const week = formatWeek(i.weekStart);
+  const week = `${formatDate(i.weekStart)} a ${formatDate(addDays(i.weekStart, 6))}`;
   const fleet = i.fleetName ?? "a gestão da frota";
   const lines: string[] = [];
   lines.push(`Bom dia, ${name}.`);

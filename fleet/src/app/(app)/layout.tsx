@@ -2,24 +2,24 @@ import { Nav, type NavItem } from "@/components/Nav";
 import { isStaff, requireUser } from "@/lib/auth";
 import { signOut } from "@/app/login/actions";
 
-const ROLE_LABELS = { owner: "Proprietário", admin: "Administrador", driver: "Motorista" } as const;
+const ROLE_LABELS = { owner: "Owner", admin: "Admin", driver: "Driver" } as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireUser();
   const staff = isStaff(session);
   const items: NavItem[] = staff
     ? [
-        { href: "/painel", label: "Painel" },
-        { href: "/cobranca", label: "Cobrança" },
-        { href: "/frota", label: "Frota" },
-        { href: "/motoristas", label: "Motoristas" },
-        { href: "/recibos", label: "Recibos" },
-        { href: "/agente", label: "Agente" },
-        { href: "/definicoes", label: "Definições" },
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/rent", label: "Rent" },
+        { href: "/fleet", label: "Fleet" },
+        { href: "/drivers", label: "Drivers" },
+        { href: "/receipts", label: "Receipts" },
+        { href: "/agent", label: "Agent" },
+        { href: "/settings", label: "Settings" },
       ]
     : [
-        { href: "/painel", label: "A minha renda" },
-        { href: "/recibos", label: "Recibos" },
+        { href: "/dashboard", label: "My rent" },
+        { href: "/receipts", label: "Receipts" },
       ];
   return (
     <>

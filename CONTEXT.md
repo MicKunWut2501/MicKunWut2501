@@ -21,7 +21,7 @@ plus an operations agent. Everything below describes real code.
 - Roles: `owner` > `admin` > `driver`. Owner/admin ("staff") see everything; drivers see only their own rows.
 - UI language: English (switched 2026-09-16). WhatsApp drafts to drivers stay in European Portuguese. Money always through `formatAOA`.
 
-## 2. Tables (all in `public`, migrations 0001–0010 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`)
+## 2. Tables (all in `public`, migrations 0001–0011 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`, 0011 adds `ensure_profile()`)
 
 | table | key columns | notes |
 | --- | --- | --- |
@@ -77,6 +77,10 @@ lint); call `luandaToday()` once at the top of the page.
   `rent_payments`, own `rent_schedule`, own `drivers` row, vehicles they are assigned to, their own receipts. Staff: all.
   Only `owner` may update `fleet_targets`, `score_weights`, `profiles`.
 - `week_status()` runs with invoker rights, so a driver calling it only sees themself (tested in `test/sql/rls.test.sql`).
+- **Never `TRUNCATE public.drivers ... CASCADE`**: `profiles.driver_id` references drivers, so the cascade empties `profiles`
+  and every signed-in user loops between /login and /dashboard. Use `delete from` instead. Since migration 0011,
+  `getSession()` calls `ensure_profile()` to recreate a missing row (role `driver`) so the loop cannot recur; the owner
+  role then has to be re-set by SQL.
 - App side: `requireUser()`, `requireStaff()`, `requireOwner()` in `src/lib/auth.ts`; `src/proxy.ts` (Next 16 middleware)
   refreshes the session cookie and redirects anonymous users to `/login`. Cron routes check `Authorization: Bearer CRON_SECRET`
   and use the service-role client (`src/lib/supabase/admin.ts`).

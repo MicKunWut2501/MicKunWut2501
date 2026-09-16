@@ -47,6 +47,8 @@ def main(path):
         for r in range(title_row + 2, ws.max_row + 1):
             d = ws.cell(row=r, column=c).value
             if not isinstance(d, dt.datetime): continue
+            if d.weekday() != 6:  # a mistyped date (e.g. Saturday) is snapped to the Sunday ending that week
+                d = d + dt.timedelta(days=6 - d.weekday())
             rev = ws.cell(row=r, column=c + 2).value
             exp = ws.cell(row=r, column=c + 3).value
             if rev is None: continue  # future week
@@ -57,13 +59,18 @@ def main(path):
         sql.append(f"insert into public.drivers (id, full_name, phone_e164) values ({q(did)}, {q(driver)}, {q('+244' + str(phone)) if phone else 'null'});")
         for start, end, rent in segments([(s, v) for s, v, _ in weeks]):
             sql.append(f"insert into public.rent_schedule (driver_id, vehicle_id, weekly_rent_aoa, valid_from, valid_to) values ({q(did)}, {q(vid)}, {rent:.2f}, {q(start)}, {q(end) if end else 'null'});")
+        pay, exps = [], []
         for sun, rev, exp in weeks:
             ws_ = sun - dt.timedelta(days=6)
             if rev > 0:
-                sql.append(f"insert into public.rent_payments (driver_id, week_start, amount_aoa, paid_at, method, note, source) values ({q(did)}, {q(ws_)}, {rev:.2f}, {q(str(sun) + ' 18:00+01')}, 'transfer', 'Imported from cashflow sheet', 'cashflow_xlsx');")
+                pay.append(f"({q(did)},{q(ws_)},{rev:.2f},{q(str(sun) + ' 18:00+01')})")
             if exp > 0:
-                note = "Recurring weekly cost (cashflow sheet)" if exp in (5500.0, 1500.0) else "Weekly expenses incl. maintenance (cashflow sheet); recategorise if needed"
-                sql.append(f"insert into public.maintenance_events (vehicle_id, event_date, category, total_aoa, notes, source) values ({q(vid)}, {q(sun)}, 'other', {exp:.2f}, {q(note)}, 'cashflow_xlsx');")
+                note = "R" if exp in (5500.0, 1500.0) else "M"
+                exps.append(f"({q(vid)},{q(sun)},{exp:.2f},{q(note)})")
+        if pay:
+            sql.append("insert into public.rent_payments (driver_id, week_start, amount_aoa, paid_at, method, note, source) select d, w, a, p, 'transfer', 'Imported from cashflow sheet', 'cashflow_xlsx' from (values " + ",".join(pay) + ") as t(d, w, a, p);")
+        if exps:
+            sql.append("insert into public.maintenance_events (vehicle_id, event_date, category, total_aoa, notes, source) select v, e, 'other', a, case n when 'R' then 'Recurring weekly cost (cashflow sheet)' else 'Weekly expenses incl. maintenance (cashflow sheet); recategorise if needed' end, 'cashflow_xlsx' from (values " + ",".join(exps) + ") as t(v, e, a, n);")
     sql.append("commit;")
     print("\n".join(sql))
 

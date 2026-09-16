@@ -19,9 +19,9 @@ plus an operations agent. Everything below describes real code.
 - Expected rent is **pro-rated by active days**: `weekly_rent × active_days / 7`, rounded to whole kwanza. Active days =
   days covered by a schedule minus days covered by `vehicle_downtime`. A driver joining Thursday owes 4/7.
 - Roles: `owner` > `admin` > `driver`. Owner/admin ("staff") see everything; drivers see only their own rows.
-- UI language: European Portuguese. Money always through `formatAOA`.
+- UI language: English (switched 2026-09-16). WhatsApp drafts to drivers stay in European Portuguese. Money always through `formatAOA`.
 
-## 2. Tables (all in `public`, migrations 0001–0008 in `fleet/supabase/migrations/`; 0007/0008 are security hardening)
+## 2. Tables (all in `public`, migrations 0001–0009 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events)
 
 | table | key columns | notes |
 | --- | --- | --- |
@@ -140,6 +140,7 @@ and every send is logged in `whatsapp_messages`.
 
 ## 9. Conventions
 
+- Routes: `/dashboard`, `/rent`, `/fleet`, `/fleet/[id]`, `/drivers`, `/drivers/[id]`, `/receipts`, `/receipts/new`, `/agent`, `/settings`, `/login`.
 - Folder layout: `src/app/(app)/<page>/page.tsx` (server), `actions.ts` (server actions, zod-validated, return
   `ActionResult`), client components alongside. Shared UI in `src/components/ui.tsx`; charts (Recharts) in `src/components/Charts.tsx`.
 - Naming: snake_case in DB and API JSON, camelCase in TS functions, `_aoa` money, `_km` distance.

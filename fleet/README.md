@@ -42,6 +42,7 @@ src/lib/scorecard     pontuação de motoristas
 src/lib/receipts      extractReceipt() → Anthropic vision | sem IA
 src/lib/agents        resumo semanal (Claude ou modelo local)
 src/lib/data          consultas Supabase (servidor)
-src/app/(app)/*       páginas: painel, cobranca, frota, motoristas, recibos, agente, definicoes
+src/app/(app)/*       pages: dashboard, rent, fleet, drivers, receipts, agent, settings
+scripts/import-cashflow.py  turns the owner's weekly cashflow workbook into SQL
 src/app/api           cron, export XLSX, extracção de recibos
 ```

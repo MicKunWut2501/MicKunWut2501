@@ -68,9 +68,9 @@ def main(path):
                 note = "R" if exp in (5500.0, 1500.0) else "M"
                 exps.append(f"({q(vid)},{q(sun)},{exp:.2f},{q(note)})")
         if pay:
-            sql.append("insert into public.rent_payments (driver_id, week_start, amount_aoa, paid_at, method, note, source) select d, w, a, p, 'transfer', 'Imported from cashflow sheet', 'cashflow_xlsx' from (values " + ",".join(pay) + ") as t(d, w, a, p);")
+            sql.append("insert into public.rent_payments (driver_id, week_start, amount_aoa, paid_at, method, note, source) select d::uuid, w::date, a, p::timestamptz, 'transfer', 'Imported from cashflow sheet', 'cashflow_xlsx' from (values " + ",".join(pay) + ") as t(d, w, a, p);")
         if exps:
-            sql.append("insert into public.maintenance_events (vehicle_id, event_date, category, total_aoa, notes, source) select v, e, 'other', a, case n when 'R' then 'Recurring weekly cost (cashflow sheet)' else 'Weekly expenses incl. maintenance (cashflow sheet); recategorise if needed' end, 'cashflow_xlsx' from (values " + ",".join(exps) + ") as t(v, e, a, n);")
+            sql.append("insert into public.maintenance_events (vehicle_id, event_date, category, total_aoa, notes, source) select v::uuid, e::date, 'other', a, case n when 'R' then 'Recurring weekly cost (cashflow sheet)' else 'Weekly expenses incl. maintenance (cashflow sheet); recategorise if needed' end, 'cashflow_xlsx' from (values " + ",".join(exps) + ") as t(v, e, a, n);")
     sql.append("commit;")
     print("\n".join(sql))
 

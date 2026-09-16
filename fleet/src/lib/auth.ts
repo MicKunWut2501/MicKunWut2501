@@ -10,8 +10,12 @@ export async function getSession(): Promise<Session | null> {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
   const { data: profile } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  if (!profile) return null;
-  return { userId: user.id, email: user.email ?? null, profile: profile as Profile };
+  if (profile) return { userId: user.id, email: user.email ?? null, profile: profile as Profile };
+  // No profile row (e.g. wiped by a data reset): create one instead of bouncing between /login and /dashboard.
+  const { data: created } = await sb.rpc("ensure_profile");
+  if (created) return { userId: user.id, email: user.email ?? null, profile: created as Profile };
+  await sb.auth.signOut();
+  return null;
 }
 
 export async function requireUser(): Promise<Session> {

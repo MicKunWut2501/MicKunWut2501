@@ -156,3 +156,63 @@ export async function updateRule(_p: ActionResult | undefined, fd: FormData): Pr
   revalidateAll();
   return { ok: true, message: "Rule saved." };
 }
+
+const GpsTokenSchema = z.object({
+  token: z.string().trim().max(200).optional().default(""),
+  mileage_unit: z.enum(["km", "m"]),
+  clear_token: z.string().optional(),
+});
+
+/** Saves a new BAANOOL token (blank keeps the current one) and the mileage unit. The token never goes back to the browser. */
+export async function saveGpsSettings(_p: ActionResult | undefined, fd: FormData): Promise<ActionResult> {
+  const s = await requireStaff();
+  const parsed = GpsTokenSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { ok: false, error: "Invalid values." };
+  const { token, mileage_unit, clear_token } = parsed.data;
+  if (token && !/^[A-Za-z0-9._-]{16,200}$/.test(token)) return { ok: false, error: "That does not look like a BAANOOL token (paste it without quotes)." };
+  const patch: Record<string, unknown> = { mileage_unit, updated_by: s.userId };
+  if (clear_token === "on") Object.assign(patch, { token: null, token_set_at: null });
+  else if (token) Object.assign(patch, { token, token_set_at: new Date().toISOString(), last_error: null });
+  const sb = await createClient();
+  const { error } = await sb.from("gps_settings").update(patch).eq("id", 1);
+  if (error) return { ok: false, error: error.message };
+  revalidateAll();
+  return { ok: true, message: clear_token === "on" ? "Token removed." : token ? "Token saved. Use Test connection." : "Settings saved." };
+}
+
+export async function saveVehicleGps(_p: ActionResult | undefined, fd: FormData): Promise<ActionResult> {
+  await requireStaff();
+  const parsed = z.object({
+    id: z.string().uuid(),
+    gps_device_id: z.string().trim().max(64).optional().default(""),
+    gps_odometer_offset_km: z.coerce.number().int().min(-2000000).max(2000000),
+  }).safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { ok: false, error: "Invalid values." };
+  const sb = await createClient();
+  const { error } = await sb.from("vehicles").update({
+    gps_device_id: parsed.data.gps_device_id || null, gps_odometer_offset_km: parsed.data.gps_odometer_offset_km,
+  }).eq("id", parsed.data.id);
+  if (error) return { ok: false, error: error.message.includes("duplicate") ? "That device is already linked to another vehicle." : error.message };
+  revalidateAll();
+  return { ok: true, message: "Saved." };
+}
+
+export type GpsTestResult =
+  | { ok: false; error: string; tokenExpired?: boolean; raw?: string | null }
+  | { ok: true; devices: { device_id: string; name: string | null; lat: number | null; lng: number | null; mileage: number | null; time: string | null; linkedTo: string | null }[]; raw: string };
+
+export async function testGpsConnection(): Promise<GpsTestResult> {
+  await requireStaff();
+  const sb = await createClient();
+  const { syncGps } = await import("@/lib/data/gps");
+  const r = await syncGps(sb, { force: true });
+  revalidateAll();
+  if (r.status === "no_token") return { ok: false, error: "No token saved yet." };
+  if (r.status === "error") return { ok: false, error: r.error, tokenExpired: r.tokenExpired, raw: r.rawText?.slice(0, 4000) ?? null };
+  const linked = new Map(r.matched.map((m) => [m.device_id, m.plate]));
+  return {
+    ok: true,
+    devices: r.devices.map((d) => ({ device_id: d.device_id, name: d.name, lat: d.lat, lng: d.lng, mileage: d.mileage_raw, time: d.position_at ?? d.position_text, linkedTo: linked.get(d.device_id) ?? null })),
+    raw: r.rawText.slice(0, 4000),
+  };
+}

@@ -4,6 +4,11 @@
 
 export const LUANDA_OFFSET_MS = 3600_000;
 
+/** Current instant in ms. Kept out of components so render code stays free of direct Date.now() calls. */
+export function nowMs(): number {
+  return Date.now();
+}
+
 export function luandaToday(now: Date = new Date()): string {
   return new Date(now.getTime() + LUANDA_OFFSET_MS).toISOString().slice(0, 10);
 }

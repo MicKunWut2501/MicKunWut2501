@@ -21,7 +21,7 @@ plus an operations agent. Everything below describes real code.
 - Roles: `owner` > `admin` > `driver`. Owner/admin ("staff") see everything; drivers see only their own rows.
 - UI language: English (switched 2026-09-16). WhatsApp drafts to drivers stay in European Portuguese. Money always through `formatAOA`.
 
-## 2. Tables (all in `public`, migrations 0001–0011 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`, 0011 adds `ensure_profile()`)
+## 2. Tables (all in `public`, migrations 0001–0011 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`, 0011 adds `ensure_profile()`, 0012 adds BAANOOL GPS: `gps_settings`, `gps_snapshots`, `vehicle_latest_gps`, `vehicles.gps_device_id` / `gps_odometer_offset_km`)
 
 | table | key columns | notes |
 | --- | --- | --- |
@@ -144,6 +144,21 @@ worst of km/date wins.
 
 Both can also be run by hand from `/agente`. Nothing is ever sent to a driver automatically: WhatsApp drafts require a click
 and every send is logged in `whatsapp_messages`.
+
+## 8b. BAANOOL GPS (live position and mileage)
+
+- Unofficial API of the vendor's web app: `POST https://www.baanooliot.com/car-api/bnclw-onboard/personController/getMyDeviceListData`,
+  header `token: <32-hex>` (= `sessionStorage.token` on baanooliot.com after login), empty form body. Response shape
+  not yet seen; `src/lib/gps/baanool.ts#parseDeviceList` locates the device array and maps common field names
+  (imei/deviceName/lat/lng/speed/gpsTime/totalMileage/online, also nested `location`). Unknown fields stay in `raw`.
+- Token lives in `gps_settings.token` (RLS: staff only), entered in /settings, never rendered back (masked to last 4).
+  It is a login session token: it expires on logout/timeout, then the Fleet page shows "token expired".
+- `syncGps()` (`src/lib/data/gps.ts`): auto-links devices whose name contains the plate digits, stores a snapshot per
+  vehicle at most every 10 min (forced by "Refresh now" / "Test connection"), and raises `vehicles.odometer_km` to
+  `round(tracker mileage_km + gps_odometer_offset_km)` when higher. `gps_settings.mileage_unit` = km or m.
+- Runs on every /fleet load (staff client) and daily via /api/cron/daily when CRON_SECRET + service-role key are set.
+- **Next step once the owner runs Test connection:** check the raw JSON in /settings; if positions or mileage are empty,
+  add the real field names to `KEYS` in baanool.ts.
 
 ## 9. Conventions
 

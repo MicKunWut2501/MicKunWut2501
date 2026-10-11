@@ -7,7 +7,11 @@ export type PaymentMethod = "transfer" | "cash" | "multicaixa" | "other";
 export type Profile = { id: string; full_name: string | null; role: UserRole; driver_id: string | null; created_at: string };
 export type Driver = { id: string; full_name: string; phone_e164: string | null; active: boolean; notes: string | null; created_at: string };
 export type Vehicle = {
-  id: string; plate: string; model: string; in_service_from: string; in_service_to: string | null; odometer_km: number; purchase_price_aoa: number | null; created_at: string;
+  id: string; plate: string; model: string; in_service_from: string; in_service_to: string | null; odometer_km: number; purchase_price_aoa: number | null; gps_device_id: string | null; gps_odometer_offset_km: number; created_at: string;
+};
+export type GpsSnapshot = {
+  id: string; vehicle_id: string; device_id: string; taken_at: string; position_at: string | null; position_text: string | null;
+  lat: number | null; lng: number | null; speed_kmh: number | null; mileage_km: number | null; online: boolean | null;
 };
 export type RentSchedule = {
   id: string; driver_id: string; vehicle_id: string; weekly_rent_aoa: number; valid_from: string; valid_to: string | null; created_at: string;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeCron } from "../_auth";
-import { isLuandaMonday, keepAlive, runRentAlerts, runWeeklyBrief, type JobResult } from "@/lib/cron/jobs";
+import { isLuandaMonday, keepAlive, runGpsSnapshot, runRentAlerts, runWeeklyBrief, type JobResult } from "@/lib/cron/jobs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -11,6 +11,8 @@ export const maxDuration = 120;
  */
 export async function GET(request: Request) {
   const results: JobResult[] = [await keepAlive()];
+  // daily GPS snapshot keeps the odometer moving even when nobody opens the Fleet page (needs the service-role key)
+  if (authorizeCron(request)) results.push(await runGpsSnapshot());
   if (isLuandaMonday()) {
     if (authorizeCron(request)) {
       results.push(await runRentAlerts());

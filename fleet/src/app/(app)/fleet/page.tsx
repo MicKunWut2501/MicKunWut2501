@@ -8,8 +8,10 @@ import { getEvents, getReminders } from "@/lib/data/maintenance";
 import { getScorecard } from "@/lib/data/scorecard";
 import { fleetMonthComparison, CATEGORY_LABELS } from "@/lib/maintenance/categories";
 import { formatAOA, formatDate, formatKm, formatMonth, formatPct } from "@/lib/format";
-import { luandaToday, monthEndOf, monthStartOf, monthsBetween } from "@/lib/time";
+import { luandaToday, monthEndOf, monthStartOf, monthsBetween, nowMs } from "@/lib/time";
 import { TrendArrow } from "@/components/TrendArrow";
+import { getLatestGps, syncGps } from "@/lib/data/gps";
+import { LiveGps } from "./LiveGps";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +21,12 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
   const today = luandaToday();
   const { month: monthParam } = await searchParams;
   const month = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? `${monthParam}-01` : monthStartOf(today);
-  const [vehicles, drivers, schedules, events, score] = await Promise.all([
-    getVehicles(sb), getDrivers(sb), getSchedules(sb), getEvents(sb, { from: month, to: monthEndOf(month) }), getScorecard(sb, today),
+  // pull fresh positions first (stored at most every 10 min), so the cards below show the updated odometer
+  const sync = await syncGps(sb);
+  const [vehicles, drivers, schedules, events, score, latestGps] = await Promise.all([
+    getVehicles(sb), getDrivers(sb), getSchedules(sb), getEvents(sb, { from: month, to: monthEndOf(month) }), getScorecard(sb, today), getLatestGps(sb),
   ]);
+  const now = nowMs();
   const reminders = await getReminders(sb, vehicles, today);
   const driverName = new Map(drivers.map((d) => [d.id, d.full_name]));
   const currentDriver = (vehicleId: string) => schedules.find((s) => s.vehicle_id === vehicleId && s.valid_from <= today && (!s.valid_to || s.valid_to >= today));
@@ -36,6 +41,8 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Fleet" subtitle={`${vehicles.length} vehicles`} />
+
+      <div className="mb-6"><LiveGps vehicles={vehicles} latest={latestGps} sync={sync} nowMs={now} /></div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {vehicles.map((v) => {

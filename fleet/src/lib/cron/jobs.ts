@@ -47,6 +47,14 @@ export async function runWeeklyBrief(): Promise<JobResult> {
   }
 }
 
+export async function runGpsSnapshot(): Promise<JobResult> {
+  const { syncGps } = await import("@/lib/data/gps");
+  const r = await syncGps(createAdminClient());
+  if (r.status === "ok") return { job: "gps", ok: true, detail: `${r.matched.length} vehicle(s) updated` };
+  if (r.status === "no_token") return { job: "gps", ok: true, detail: "no BAANOOL token saved" };
+  return { job: "gps", ok: false, detail: r.error };
+}
+
 /** Monday in Luanda (UTC+1). */
 export function isLuandaMonday(now: Date = new Date()): boolean {
   return new Date(now.getTime() + 3600_000).getUTCDay() === 1;

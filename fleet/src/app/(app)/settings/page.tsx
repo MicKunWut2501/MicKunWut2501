@@ -3,10 +3,12 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getDrivers, getLatestCash, getProfiles, getSchedules, getScoreWeights, getTargets, getVehicles } from "@/lib/data/fleet";
 import { getRules } from "@/lib/data/maintenance";
-import { formatAOA, formatDate } from "@/lib/format";
+import { getGpsSettings } from "@/lib/data/gps";
+import { formatAOA, formatDate, formatDateTime } from "@/lib/format";
 import { luandaToday } from "@/lib/time";
 import { ActionForm } from "./ActionForm";
-import { addCashPosition, addDriver, addSchedule, addVehicle, updateProfileRole, updateRule, updateTargets, updateWeights } from "./actions";
+import { addCashPosition, addDriver, addSchedule, addVehicle, saveGpsSettings, saveVehicleGps, updateProfileRole, updateRule, updateTargets, updateWeights } from "./actions";
+import { GpsTest } from "./GpsTest";
 import { EndScheduleButton } from "./EndScheduleButton";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +18,10 @@ export default async function SettingsPage() {
   const owner = session.profile.role === "owner";
   const sb = await createClient();
   const today = luandaToday();
-  const [targets, weights, cash, vehicles, drivers, schedules, profiles, rules] = await Promise.all([
-    getTargets(sb), getScoreWeights(sb), getLatestCash(sb), getVehicles(sb), getDrivers(sb), getSchedules(sb), owner ? getProfiles(sb) : Promise.resolve([]), getRules(sb),
+  const [targets, weights, cash, vehicles, drivers, schedules, profiles, rules, gps] = await Promise.all([
+    getTargets(sb), getScoreWeights(sb), getLatestCash(sb), getVehicles(sb), getDrivers(sb), getSchedules(sb), owner ? getProfiles(sb) : Promise.resolve([]), getRules(sb), getGpsSettings(sb),
   ]);
+  const maskedToken = gps?.token ? `••••••••${gps.token.slice(-4)}` : null;
   const plate = new Map(vehicles.map((v) => [v.id, v.plate]));
   const dname = new Map(drivers.map((d) => [d.id, d.full_name]));
 
@@ -116,6 +119,39 @@ export default async function SettingsPage() {
           </ActionForm>
         </Card>
       </div>
+
+      <Card className="mt-6" title="BAANOOL GPS (live position and mileage)">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <p className="mb-2 text-sm text-gray-600">
+              Token: {maskedToken ? <><span className="font-mono">{maskedToken}</span> · saved {formatDateTime(gps?.token_set_at)}</> : "none"}
+              {gps?.last_sync_at && <> · last sync {formatDateTime(gps.last_sync_at)}</>}
+            </p>
+            {gps?.last_error && <div className="mb-2"><Notice kind="error">Last error: {gps.last_error}</Notice></div>}
+            <ActionForm action={saveGpsSettings} submit="Save">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="New session token" hint="baanooliot.com → log in → Cmd+Option+I → Console → copy(sessionStorage.getItem('token'))"><input name="token" type="password" autoComplete="off" placeholder={maskedToken ? "leave blank to keep" : "32 characters"} className={inputCls} /></Field>
+                <Field label="Mileage unit from BAANOOL" hint="check against the car's real odometer after the first test"><select name="mileage_unit" defaultValue={gps?.mileage_unit ?? "km"} className={inputCls}><option value="km">kilometres</option><option value="m">metres</option></select></Field>
+              </div>
+              {maskedToken && <label className="mt-2 flex items-center gap-2 text-xs text-gray-600"><input type="checkbox" name="clear_token" /> remove saved token</label>}
+            </ActionForm>
+            <GpsTest />
+          </div>
+          <div>
+            <p className="mb-2 text-xs text-gray-500">Devices are linked automatically when their BAANOOL name contains the plate digits. Otherwise paste the device ID from Test connection. Odometer offset = real odometer − tracker mileage, so the vehicle odometer shows the true reading.</p>
+            <div className="space-y-2">
+              {vehicles.map((v) => (
+                <ActionForm key={v.id} action={saveVehicleGps} submit="Save" className="flex flex-wrap items-end gap-2 border-b border-gray-100 pb-2">
+                  <input type="hidden" name="id" value={v.id} />
+                  <span className="w-28 text-sm font-medium">{v.plate}</span>
+                  <label className="text-xs">Device ID<input name="gps_device_id" defaultValue={v.gps_device_id ?? ""} className={`${inputCls} w-44 font-mono`} /></label>
+                  <label className="text-xs">Odometer offset (km)<input name="gps_odometer_offset_km" type="number" defaultValue={v.gps_odometer_offset_km ?? 0} className={`${inputCls} w-28`} /></label>
+                </ActionForm>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card title="Maintenance rules (maintenance_rules)">

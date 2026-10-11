@@ -137,8 +137,9 @@ worst of km/date wins.
 
 | job | schedule (Luanda) | where |
 | --- | --- | --- |
-| Rent alerts | Monday 08:00 | `GET /api/cron/rent-alerts` → `generate_rent_alerts()`; `vercel.json` cron `0 7 * * 1` |
-| Weekly operations brief | Monday 08:30 | `GET /api/cron/weekly-brief` → `buildBriefInput` → `generateWeeklyBrief` (Claude, or a deterministic template without a key) → `agent_runs`; shown on /painel and /agente |
+| Keep-alive | daily 08:00 | `GET /api/cron/daily` → `keepAlive()`: one anon read so the free-tier Supabase project never hits the 7-day inactivity pause (it was paused once, on ~2026-09-27, and restored 2026-10-11). Needs no secrets. |
+| Rent alerts | Monday 08:00 | same daily route, Mondays only and only with `Authorization: Bearer CRON_SECRET` → `runRentAlerts()` |
+| Weekly operations brief | Monday 08:00 | same daily route, after the alerts → `runWeeklyBrief()` (Claude, or a deterministic template without a key) → `agent_runs` |
 | Receipt extraction | on demand | `POST /api/receipts/extract` |
 
 Both can also be run by hand from `/agente`. Nothing is ever sent to a driver automatically: WhatsApp drafts require a click

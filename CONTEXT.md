@@ -176,8 +176,22 @@ and every send is logged in `whatsapp_messages`.
 ## 10. Live infrastructure (set up 2026-09-15)
 
 - Supabase project **frota-luanda**, ref `mdlyfvqtrgaaorxwvlie`, region eu-west-1, org "MKW Limited" (free plan).
-  URL `https://mdlyfvqtrgaaorxwvlie.supabase.co`. Migrations 0001–0008 applied; `seed.sql` loaded (sample data, wipe with
-  `truncate public.rent_payments, public.maintenance_events, public.vehicle_downtime, public.cash_positions, public.rent_schedule, public.drivers, public.vehicles cascade;`).
+  URL `https://mdlyfvqtrgaaorxwvlie.supabase.co`. Migrations 0001–0012 applied. Auto-paused once for 7 days without
+  activity (~2026-09-27), restored 2026-10-11; the daily keep-alive cron prevents a repeat.
+  Leftover: the `http` extension was enabled on 2026-10-12 to inspect the BAANOOL answer; `drop extension http` kept
+  timing out through the MCP tool. Harmless (not exposed via the API); remove in Dashboard → Database → Extensions.
+- **Data = the owner's "Cashflow Yango 2026" workbook.** Sample data was removed on 2026-09-16 (never truncate `drivers`:
+  the cascade empties `profiles`). Imported: LDA-10-53-AG (Raul, since 2025-11-03, bought 10.6M Kz), LDA-72-39-AH
+  (Nzenza, since 2025-12-08, 9.4M), LDA-13-06-AN (Adam, since 2026-06-15, 9.7M); 93 weekly payments and 95 weekly
+  expense rows up to the week 2026-08-31 → 09-06. Sheet dates are the Sunday ending each rent week (`week_start =
+  Sunday − 6`); "Gross Revenue" → `rent_payments`, "Expenses" → `maintenance_events` category `other` (recategorise in
+  /receipts/bulk). Weekly rent in `rent_schedule` = amount persisting ≥ 3 weeks (Raul 110k → 85k from 2026-06-15 →
+  90k from 2026-07-27; Nzenza 100k → 85k from 2025-12-29 → 110k from 2026-06-15; Adam 110k).
+- **Excel is the source of truth (owner decision, 2026-10-12).** Re-sync with
+  `python3 -I fleet/scripts/import-cashflow.py [--dry-run] <workbook.xlsx>` → SQL. It upserts vehicles/drivers, rebuilds
+  `rent_schedule` per driver, and inserts/updates/deletes only rows with `source = 'cashflow_xlsx'` (app-entered rows
+  and categories set in the app are kept). Always run `--dry-run` against the live DB first and read the
+  added/changed/removed counts. It refuses files whose formula cells have no cached value.
 - Owner login: michael.wuta@gmail.com (role `owner`), created via SQL with a temporary password given in chat; change it after first sign-in.
 - Public Supabase settings live in `fleet/.env.production` (committed on purpose: URL and anon key are public by design).
   Secrets (`SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ANTHROPIC_API_KEY`) go in the Vercel project settings only.

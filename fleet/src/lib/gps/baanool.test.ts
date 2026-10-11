@@ -77,3 +77,42 @@ describe("fetchBaanoolDevices", () => {
     expect(!r.ok && r.tokenExpired).toBe(true);
   });
 });
+
+describe("real BAANOOL answer shape (2026-10-12, values altered)", () => {
+  const answer = {
+    chart: null,
+    data: [{
+      devices: [
+        { acc: 0, speed: 0.0, uid: 1, id: 5825574, lat: -8.93336, mileage: 22717, dno: "869700000000001", lng: 13.19523, carNum: "LDA-13-06-AN", timeZone: "1.0", updateTime: "2026-10-12 05:34:40", alarmTime: "2026-10-12 05:34:40", name: "SUZUKI SPRESS LDA-13-06-AN", online: 0 },
+        { acc: 0, speed: 37.5, uid: 1, id: 5310159, lat: -8.93545, mileage: 80682, dno: "869700000000002", lng: 13.20192, carNum: "LDA 10 53", timeZone: "1.0", updateTime: "2026-10-12 06:13:26", name: "Suzuki Espresso LDA-10 53 AG", online: 1 },
+      ],
+      groups: [{ createTime: null, id: 0, name: "defaultGroup", status: null, userId: null }],
+      deviceNums: { offline: 1, total: 2, online: 1 },
+    }],
+    length: null, page: null, resmsg: "SUCCESS", status: 0, tips: null, totalrow: 1,
+  };
+  it("finds data[0].devices, not the groups array", () => {
+    const r = parseDeviceList(answer);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.devices.map((d) => d.device_id)).toEqual(["869700000000001", "869700000000002"]);
+  });
+  it("maps dno, carNum, coordinates, km mileage, online and the device-local time", () => {
+    const r = parseDeviceList(answer);
+    if (!r.ok) throw new Error("parse failed");
+    const [a, b] = r.devices;
+    expect(a.name).toBe("LDA-13-06-AN");
+    expect(a.lat).toBeCloseTo(-8.93336);
+    expect(a.lng).toBeCloseTo(13.19523);
+    expect(a.mileage_raw).toBe(22717);
+    expect(a.online).toBe(false);
+    expect(b.online).toBe(true);
+    expect(b.speed_kmh).toBe(37.5);
+    expect(a.position_at).toBe("2026-10-12T04:34:40.000Z"); // 05:34:40 at UTC+1
+    expect(matchesPlate("LDA-10-53-AG", b.name)).toBe(true);
+  });
+  it("reports a non-zero status as an error with resmsg", () => {
+    const r = parseDeviceList({ status: 1001, resmsg: "token invalid", data: null });
+    expect(r).toEqual({ ok: false, error: "token invalid", tokenExpired: true });
+  });
+});

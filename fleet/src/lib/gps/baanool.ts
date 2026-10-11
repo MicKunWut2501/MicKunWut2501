@@ -2,8 +2,9 @@
  * BAANOOL IOT (baanooliot.com) unofficial web API, as used by the vendor's own web app.
  * POST https://www.baanooliot.com/car-api/bnclw-onboard/personController/getMyDeviceListData
  * Header `token: <32-hex session token>` (sessionStorage.token on baanooliot.com), empty form body.
- * The response shape is not documented, so parsing is deliberately tolerant: it locates the device array and maps
- * fields by common names. Anything unrecognised stays in `raw` and is shown by Settings → Test connection.
+ * Observed answer (2026-10-12): {status: 0, resmsg: "SUCCESS", data: [{devices: [{dno: <IMEI>, carNum, name, lat, lng,
+ * speed, mileage (km), online 0/1, acc_status, updateTime "YYYY-MM-DD HH:mm:ss", timeZone "1.0", ...}], groups, deviceNums}]}.
+ * Parsing stays tolerant: it picks the array that looks most like devices and maps fields by common names.
  */
 
 export const BAANOOL_DEVICE_LIST_URL = "https://www.baanooliot.com/car-api/bnclw-onboard/personController/getMyDeviceListData";
@@ -29,8 +30,8 @@ type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 
 const KEYS = {
-  id: ["imei", "deviceImei", "deviceNo", "deviceNumber", "deviceId", "devId", "sn", "id"],
-  name: ["deviceName", "carNumber", "plateNumber", "plateNo", "carNo", "name", "nickName", "remark"],
+  id: ["dno", "imei", "deviceImei", "deviceNo", "deviceNumber", "deviceId", "devId", "sn", "id"],
+  name: ["carNum", "deviceName", "carNumber", "plateNumber", "plateNo", "carNo", "name", "nickName", "remark"],
   lat: ["lat", "latitude", "gpsLat", "glat", "la", "y"],
   lng: ["lng", "lon", "longitude", "gpsLng", "gpsLon", "glng", "lo", "x"],
   speed: ["speed", "gpsSpeed", "velocity"],
@@ -69,8 +70,11 @@ function toBool(v: unknown): boolean | null {
   return null;
 }
 
-/** Epoch numbers (s or ms) and ISO strings with a zone become ISO; zone-less text is kept only as text. */
-export function parseTime(v: unknown): { iso: string | null; text: string | null } {
+/**
+ * Epoch numbers (s or ms) and ISO strings with a zone become ISO. Zone-less "YYYY-MM-DD HH:mm:ss" text becomes ISO only
+ * when the device reports its own UTC offset in hours (BAANOOL `timeZone: "1.0"`); otherwise it is kept as text.
+ */
+export function parseTime(v: unknown, tzHours: number | null = null): { iso: string | null; text: string | null } {
   if (v === undefined || v === null || v === "") return { iso: null, text: null };
   const n = toNum(v);
   if (n !== null && n > 1e9) {
@@ -80,28 +84,38 @@ export function parseTime(v: unknown): { iso: string | null; text: string | null
   if (typeof v === "string" && /(Z|[+-]\d{2}:?\d{2})$/.test(v.trim()) && !Number.isNaN(Date.parse(v))) {
     return { iso: new Date(v).toISOString(), text: v };
   }
+  const m = typeof v === "string" ? v.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/) : null;
+  if (m && tzHours !== null && Number.isFinite(tzHours) && Math.abs(tzHours) <= 14) {
+    const utc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] ? +m[6] : 0) - tzHours * 3600_000;
+    return { iso: new Date(utc).toISOString(), text: String(v) };
+  }
   return { iso: null, text: String(v) };
 }
 
-const ARRAY_KEYS = ["data", "list", "records", "rows", "result", "deviceList", "devices", "content", "items"];
-
-function findArray(v: unknown, depth = 0): Obj[] | null {
-  if (Array.isArray(v)) return v.filter(isObj);
-  if (!isObj(v) || depth > 3) return null;
-  for (const k of ARRAY_KEYS) {
-    const key = Object.keys(v).find((x) => x.toLowerCase() === k.toLowerCase());
-    if (key !== undefined) {
-      const found = findArray(v[key], depth + 1);
-      if (found) return found;
+/** Walks the whole answer and returns the array of objects that looks most like a device list (id + coordinates). */
+function findArray(root: unknown): Obj[] | null {
+  let best: { arr: Obj[]; score: number } | null = null;
+  const visit = (v: unknown, depth: number) => {
+    if (depth > 6) return;
+    if (Array.isArray(v)) {
+      const objs = v.filter(isObj);
+      if (objs.length) {
+        const score = objs.reduce((a, o) => a + (lookup(o, KEYS.id) !== undefined ? 1 : 0) + (lookup(o, KEYS.lat) !== undefined ? 2 : 0), 0);
+        if (score > 0 && (!best || score > best.score)) best = { arr: objs, score };
+      }
+      for (const x of v) visit(x, depth + 1);
+    } else if (isObj(v)) {
+      for (const x of Object.values(v)) visit(x, depth + 1);
     }
-  }
-  return null;
+  };
+  visit(root, 0);
+  return (best as { arr: Obj[]; score: number } | null)?.arr ?? null;
 }
 
 export function parseDeviceList(json: unknown): ParseResult {
   if (isObj(json)) {
     const code = json.code ?? json.status ?? json.errCode ?? json.errorCode;
-    const msg = String(json.msg ?? json.message ?? json.errMsg ?? json.error ?? "");
+    const msg = String(json.msg ?? json.resmsg ?? json.message ?? json.errMsg ?? json.error ?? "");
     const okCodes = [0, 1, 200, "0", "1", "200", "success", "SUCCESS", "ok", "OK", undefined, null];
     const failed = json.success === false || !okCodes.includes(code as never);
     if (failed) {
@@ -115,7 +129,7 @@ export function parseDeviceList(json: unknown): ParseResult {
   for (const raw of arr) {
     const id = lookup(raw, KEYS.id);
     if (id === undefined) continue;
-    const t = parseTime(lookup(raw, KEYS.time));
+    const t = parseTime(lookup(raw, KEYS.time), toNum(lookup(raw, ["timeZone", "timezone", "tz"])));
     devices.push({
       device_id: String(id),
       name: (lookup(raw, KEYS.name) as string | undefined) != null ? String(lookup(raw, KEYS.name)) : null,

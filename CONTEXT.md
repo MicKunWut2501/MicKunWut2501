@@ -148,17 +148,18 @@ and every send is logged in `whatsapp_messages`.
 ## 8b. BAANOOL GPS (live position and mileage)
 
 - Unofficial API of the vendor's web app: `POST https://www.baanooliot.com/car-api/bnclw-onboard/personController/getMyDeviceListData`,
-  header `token: <32-hex>` (= `sessionStorage.token` on baanooliot.com after login), empty form body. Response shape
-  not yet seen; `src/lib/gps/baanool.ts#parseDeviceList` locates the device array and maps common field names
-  (imei/deviceName/lat/lng/speed/gpsTime/totalMileage/online, also nested `location`). Unknown fields stay in `raw`.
+  header `token: <32-hex>` (= `sessionStorage.token` on baanooliot.com after login), empty form body. Answer observed
+  2026-10-12: `{status: 0, resmsg: "SUCCESS", data: [{devices: [...], groups: [...], deviceNums: {...}}]}`; per device
+  `dno` = IMEI (used as `gps_device_id`), `carNum`, `name`, `lat`, `lng`, `speed`, `mileage` (km), `online` 0/1,
+  `acc_status`, `updateTime` "YYYY-MM-DD HH:mm:ss" in the tracker's zone given by `timeZone` ("1.0" = UTC+1).
+  Errors come as non-zero `status` with `resmsg`. `parseDeviceList` picks the array that looks most like devices.
 - Token lives in `gps_settings.token` (RLS: staff only), entered in /settings, never rendered back (masked to last 4).
   It is a login session token: it expires on logout/timeout, then the Fleet page shows "token expired".
 - `syncGps()` (`src/lib/data/gps.ts`): auto-links devices whose name contains the plate digits, stores a snapshot per
   vehicle at most every 10 min (forced by "Refresh now" / "Test connection"), and raises `vehicles.odometer_km` to
   `round(tracker mileage_km + gps_odometer_offset_km)` when higher. `gps_settings.mileage_unit` = km or m.
 - Runs on every /fleet load (staff client) and daily via /api/cron/daily when CRON_SECRET + service-role key are set.
-- **Next step once the owner runs Test connection:** check the raw JSON in /settings; if positions or mileage are empty,
-  add the real field names to `KEYS` in baanool.ts.
+- Tracker mileage on 2026-10-12: LDA-13-06-AN 22 717 km, LDA-72-39-AH 50 929 km, LDA-10-53-AG 80 682 km (unit km confirmed by magnitude).
 
 ## 9. Conventions
 

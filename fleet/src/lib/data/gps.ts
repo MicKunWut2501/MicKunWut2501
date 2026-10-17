@@ -1,9 +1,10 @@
 import "server-only";
 import type { SB } from "./fleet";
 import { fetchBaanoolDevices, hasFix, matchesPlate, mileageToKm, type GpsDevice } from "@/lib/gps/baanool";
-import type { GpsSnapshot, Vehicle } from "@/lib/supabase/types";
+import type { GpsSnapshot, OdometerReading, Vehicle } from "@/lib/supabase/types";
 import { num } from "@/lib/supabase/types";
 import { summarizeMileage, type MileagePoint, type MileageSummary } from "@/lib/gps/mileage";
+import { addDays } from "@/lib/time";
 
 export type GpsSettings = { token: string | null; token_set_at: string | null; mileage_unit: "km" | "m"; last_sync_at: string | null; last_error: string | null };
 
@@ -21,15 +22,30 @@ export async function getLatestGps(sb: SB): Promise<Map<string, GpsSnapshot>> {
   return out;
 }
 
+export async function getOdometerReadings(sb: SB, vehicleId?: string): Promise<OdometerReading[]> {
+  let q = sb.from("odometer_readings").select("*").order("read_on", { ascending: true });
+  if (vehicleId) q = q.eq("vehicle_id", vehicleId);
+  const { data } = await q;
+  return ((data ?? []) as OdometerReading[]).map((r) => ({ ...r, tracker_km: r.tracker_km == null ? null : num(r.tracker_km) }));
+}
+
+export type VehicleMileage = { summary: MileageSummary; first: OdometerReading | null; last: OdometerReading | null };
+
 /**
- * Current km and km driven in the last 7 / 30 days per vehicle. Only the readings the summary needs are read
- * (latest, and the last reading before / first after each window start), so the cost stays flat as history grows.
+ * Current km and km driven in the last 7 / 30 days per vehicle, counted from the first dashboard reading when there
+ * is one. Only the snapshots the summary needs are read (latest, and the last before / first after each window
+ * start), so the cost stays flat as history grows.
  */
-export async function getMileageSummaries(sb: SB, vehicleIds: string[], nowMs: number): Promise<Map<string, MileageSummary>> {
+export async function getMileageSummaries(sb: SB, vehicleIds: string[], nowMs: number): Promise<Map<string, VehicleMileage>> {
   const rows = (r: { data: unknown }): MileagePoint[] =>
     ((r.data ?? []) as MileagePoint[]).map((p) => ({ taken_at: p.taken_at, mileage_km: p.mileage_km == null ? null : num(p.mileage_km) }));
-  const out = new Map<string, MileageSummary>();
+  const readings = await getOdometerReadings(sb);
+  const out = new Map<string, VehicleMileage>();
   await Promise.all(vehicleIds.map(async (id) => {
+    const mine = readings.filter((r) => r.vehicle_id === id);
+    const first = mine[0] ?? null;
+    const startReading = mine.find((r) => r.tracker_km != null && r.tracker_at);
+    const start = startReading ? { taken_at: startReading.tracker_at!, mileage_km: startReading.tracker_km } : null;
     const q = () => sb.from("gps_snapshots").select("taken_at, mileage_km").eq("vehicle_id", id).not("mileage_km", "is", null);
     const starts = [7, 30].map((d) => new Date(nowMs - d * 86_400_000).toISOString());
     const res = await Promise.all([
@@ -39,9 +55,44 @@ export async function getMileageSummaries(sb: SB, vehicleIds: string[], nowMs: n
         q().gt("taken_at", iso).order("taken_at", { ascending: true }).limit(1),
       ]),
     ]);
-    out.set(id, summarizeMileage(res.flatMap(rows), nowMs));
+    out.set(id, { summary: summarizeMileage(res.flatMap(rows), nowMs, start), first, last: mine[mine.length - 1] ?? null });
   }));
   return out;
+}
+
+export type CalibrationResult = { plate: string; odometer_km: number; tracker_km: number | null; previous_km: number; offset_km: number | null };
+
+/**
+ * Records a dashboard reading and calibrates the tracker: offset = reading - tracker mileage at the end of that day
+ * (the latest snapshot for today), and the vehicle odometer is set to latest tracker mileage + offset (it may go down
+ * when the tracker over-counted). Without tracker data the reading becomes the odometer as is.
+ */
+export async function recordOdometerReading(sb: SB, v: Vehicle, readOn: string, km: number, driverId: string | null): Promise<CalibrationResult> {
+  const snap = async (before?: string) => {
+    let q = sb.from("gps_snapshots").select("taken_at, mileage_km").eq("vehicle_id", v.id).not("mileage_km", "is", null);
+    if (before) q = q.lt("taken_at", before);
+    const { data } = await q.order("taken_at", { ascending: false }).limit(1).maybeSingle();
+    const p = data as MileagePoint | null;
+    return p && p.mileage_km != null ? { taken_at: p.taken_at, mileage_km: num(p.mileage_km) } : null;
+  };
+  const [atRead, latest, newer] = await Promise.all([
+    snap(`${addDays(readOn, 1)}T00:00:00+01:00`), snap(),
+    sb.from("odometer_readings").select("id", { count: "exact", head: true }).eq("vehicle_id", v.id).gt("read_on", readOn),
+  ]);
+  const offset = atRead ? km - Math.round(atRead.mileage_km) : null;
+  const { error } = await sb.from("odometer_readings").upsert({
+    vehicle_id: v.id, read_on: readOn, odometer_km: km, driver_id: driverId,
+    tracker_km: atRead?.mileage_km ?? null, tracker_at: atRead?.taken_at ?? null,
+  }, { onConflict: "vehicle_id,read_on" });
+  if (error) throw new Error(error.message);
+  // a backdated reading is kept for the record but does not override the calibration from a newer one
+  if ((newer.count ?? 0) > 0) return { plate: v.plate, odometer_km: km, tracker_km: atRead?.mileage_km ?? null, previous_km: v.odometer_km, offset_km: null };
+  const odometer = offset != null && latest ? Math.round(latest.mileage_km) + offset : km;
+  const { error: vErr } = await sb.from("vehicles").update({
+    odometer_km: odometer, ...(offset != null ? { gps_odometer_offset_km: offset } : {}),
+  }).eq("id", v.id);
+  if (vErr) throw new Error(vErr.message);
+  return { plate: v.plate, odometer_km: km, tracker_km: atRead?.mileage_km ?? null, previous_km: v.odometer_km, offset_km: offset };
 }
 
 const STALE_SYNC_MS = 10 * 60 * 1000;

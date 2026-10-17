@@ -9,6 +9,10 @@ export type Driver = { id: string; full_name: string; phone_e164: string | null;
 export type Vehicle = {
   id: string; plate: string; model: string; in_service_from: string; in_service_to: string | null; odometer_km: number; purchase_price_aoa: number | null; gps_device_id: string | null; gps_odometer_offset_km: number; created_at: string;
 };
+export type OdometerReading = {
+  id: string; vehicle_id: string; read_on: string; odometer_km: number; driver_id: string | null;
+  tracker_km: number | null; tracker_at: string | null; note: string | null; created_at: string;
+};
 export type GpsSnapshot = {
   id: string; vehicle_id: string; device_id: string; taken_at: string; position_at: string | null; position_text: string | null;
   lat: number | null; lng: number | null; speed_kmh: number | null; mileage_km: number | null; online: boolean | null;

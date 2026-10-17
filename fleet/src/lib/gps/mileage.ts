@@ -14,6 +14,8 @@ export type MileageSummary = {
   latest_at: string | null;
   last7: MileageWindow;
   last30: MileageWindow;
+  /** km driven since the starting point (first dashboard reading), null without one */
+  since_start_km: number | null;
   /** average km per day over the 30-day window (or the shorter history it has) */
   per_day_km: number | null;
 };
@@ -35,10 +37,15 @@ function windowKm(points: (MileagePoint & { mileage_km: number })[], nowMs: numb
   return { km: Math.max(0, latest.mileage_km - base.mileage_km), since: base.taken_at, partial };
 }
 
-/** Tracker mileage history (any order) → latest reading and km driven in the last 7 / 30 days. */
-export function summarizeMileage(history: MileagePoint[], nowMs: number): MileageSummary {
-  const points = history
-    .filter((p): p is MileagePoint & { mileage_km: number } => p.mileage_km != null && Number.isFinite(p.mileage_km))
+/**
+ * Tracker mileage history (any order) → latest reading and km driven in the last 7 / 30 days.
+ * With a starting point (tracker mileage when the first dashboard reading was taken), history before it is ignored.
+ */
+export function summarizeMileage(history: MileagePoint[], nowMs: number, start: MileagePoint | null = null): MileageSummary {
+  const valid = (p: MileagePoint): p is MileagePoint & { mileage_km: number } => p.mileage_km != null && Number.isFinite(p.mileage_km);
+  const origin = start && valid(start) ? start : null;
+  const points = [...history.filter((p) => !origin || p.taken_at > origin.taken_at), ...(origin ? [origin] : [])]
+    .filter(valid)
     .sort((a, b) => a.taken_at.localeCompare(b.taken_at));
   const latest = points[points.length - 1];
   const last30 = windowKm(points, nowMs, 30);
@@ -52,6 +59,7 @@ export function summarizeMileage(history: MileagePoint[], nowMs: number): Mileag
     latest_at: latest?.taken_at ?? null,
     last7: windowKm(points, nowMs, 7),
     last30,
+    since_start_km: origin && latest ? Math.max(0, latest.mileage_km - origin.mileage_km) : null,
     per_day_km: perDay,
   };
 }

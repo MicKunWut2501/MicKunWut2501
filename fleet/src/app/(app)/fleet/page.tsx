@@ -43,7 +43,11 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="Fleet" subtitle={`${vehicles.length} vehicles`} />
 
-      <div className="mb-6"><CurrentKm vehicles={vehicles} mileage={mileage} reminders={reminders} /></div>
+      <div className="mb-6">
+        <CurrentKm vehicles={vehicles} mileage={mileage} reminders={reminders} entry={{
+          today, drivers: new Map(vehicles.flatMap((v) => { const s = currentDriver(v.id); const n = s && driverName.get(s.driver_id); return n ? [[v.id, n] as const] : []; })),
+        }} />
+      </div>
 
       <div className="mb-6"><LiveGps vehicles={vehicles} latest={latestGps} sync={sync} nowMs={now} /></div>
 

@@ -48,3 +48,30 @@ describe("summarizeMileage", () => {
     expect(s.last30.km).toBe(0);
   });
 });
+
+describe("summarizeMileage with a starting point", () => {
+  const history = [
+    { taken_at: at(6), mileage_km: 80682 },
+    { taken_at: at(3), mileage_km: 81500 },
+    { taken_at: at(1), mileage_km: 82485 },
+    { taken_at: at(0), mileage_km: 82700 },
+  ];
+
+  it("ignores history before the start and counts km from it", () => {
+    const s = summarizeMileage(history, NOW, { taken_at: at(1), mileage_km: 82485 });
+    expect(s.since_start_km).toBe(215);
+    expect(s.last7).toEqual({ km: 215, since: at(1), partial: true });
+    expect(s.last30.km).toBe(215);
+  });
+
+  it("reports 0 km since start when the start is the latest reading", () => {
+    const s = summarizeMileage(history.slice(0, 3), NOW, { taken_at: at(1), mileage_km: 82485 });
+    expect(s.since_start_km).toBe(0);
+    expect(s.last7.km).toBeNull();
+  });
+
+  it("falls back to the full history without a usable start", () => {
+    expect(summarizeMileage(history, NOW, { taken_at: at(1), mileage_km: null }).since_start_km).toBeNull();
+    expect(summarizeMileage(history, NOW).last7.km).toBe(2018);
+  });
+});

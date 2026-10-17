@@ -21,7 +21,7 @@ plus an operations agent. Everything below describes real code.
 - Roles: `owner` > `admin` > `driver`. Owner/admin ("staff") see everything; drivers see only their own rows.
 - UI language: English (switched 2026-09-16). WhatsApp drafts to drivers stay in European Portuguese. Money always through `formatAOA`.
 
-## 2. Tables (all in `public`, migrations 0001–0011 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`, 0011 adds `ensure_profile()`, 0012 adds BAANOOL GPS: `gps_settings`, `gps_snapshots`, `vehicle_latest_gps`, `vehicles.gps_device_id` / `gps_odometer_offset_km`)
+## 2. Tables (all in `public`, migrations 0001–0013 in `fleet/supabase/migrations/`; 0007/0008 are security hardening, 0009 adds `vehicles.purchase_price_aoa` and `source` columns on payments/events, 0010 adds FX and loan fields to `fleet_targets`, 0011 adds `ensure_profile()`, 0012 adds BAANOOL GPS: `gps_settings`, `gps_snapshots`, `vehicle_latest_gps`, `vehicles.gps_device_id` / `gps_odometer_offset_km`, 0013 adds `odometer_readings`)
 
 | table | key columns | notes |
 | --- | --- | --- |
@@ -160,10 +160,17 @@ and every send is logged in `whatsapp_messages`.
   `round(tracker mileage_km + gps_odometer_offset_km)` when higher. `gps_settings.mileage_unit` = km or m.
 - Runs on every /fleet load (staff client), on /dashboard load when the last pull is older than 10 min
   (`syncGpsIfStale`), and daily via /api/cron/daily when CRON_SECRET + service-role key are set.
+- **Dashboard km readings** (`odometer_readings`, migration 0013; one per car per day, staff-only RLS): the km the
+  drivers report from the car's dashboard, entered in the form under "Current mileage" on /fleet (all cars at once,
+  blank = skip). `recordOdometerReading()` stores the tracker mileage at that moment (forced sync for today, else the
+  last snapshot of that day), sets `gps_odometer_offset_km = reading - tracker` and `vehicles.odometer_km` = latest
+  tracker + offset (it may go down). A backdated reading older than an existing one is stored but does not
+  recalibrate. **The first reading per car is the starting point**: "km driven" ignores tracker history before it.
+  History is listed on /fleet/[id]. Starting point requested by the owner: readings dated 2026-10-17.
 - **Current mileage** section (`src/components/CurrentKm.tsx`, on /dashboard and at the top of /fleet): per car the
   current km (`vehicles.odometer_km`), km driven in the last 7 and 30 days, average km/day, the next km-based service
   (smallest `km_remaining` from the maintenance reminders, with an estimate in days at the current pace) and the time of
-  the last reading. `getMileageSummaries()` reads only the latest snapshot plus the last snapshot before / first after
+  the last reading, plus km since the starting point. `getMileageSummaries()` reads only the latest snapshot plus the last snapshot before / first after
   each window start (index `gps_snapshots_vehicle_idx`), and `summarizeMileage()` (`src/lib/gps/mileage.ts`, tested)
   computes the differences; when history does not reach back to the window start it shows "since <date>". Snapshot
   history starts 2026-10-11.

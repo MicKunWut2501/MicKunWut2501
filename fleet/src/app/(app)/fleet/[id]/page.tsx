@@ -10,6 +10,7 @@ import { CATEGORY_LABELS, costPerKm, monthlyByCategory, EXPENSE_CATEGORIES } fro
 import { formatAOA, formatDate, formatKm, formatMonth } from "@/lib/format";
 import { luandaToday } from "@/lib/time";
 import { DowntimeForm } from "./DowntimeForm";
+import { getOdometerReadings } from "@/lib/data/gps";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,8 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
   const today = luandaToday();
   const vehicle = await getVehicle(sb, id);
   if (!vehicle) notFound();
-  const [events, downtime, schedules, drivers, allVehicles] = await Promise.all([
-    getEvents(sb, { vehicleId: id }), getDowntime(sb, id), getSchedules(sb), getDrivers(sb), getVehicles(sb),
+  const [events, downtime, schedules, drivers, allVehicles, readings] = await Promise.all([
+    getEvents(sb, { vehicleId: id }), getDowntime(sb, id), getSchedules(sb), getDrivers(sb), getVehicles(sb), getOdometerReadings(sb, id),
   ]);
   const reminders = (await getReminders(sb, allVehicles.filter((v) => v.id === id), today)).get(id) ?? [];
   const driverName = new Map(drivers.map((d) => [d.id, d.full_name]));
@@ -93,6 +94,18 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
             <ul className="space-y-1 text-sm">
               {schedules.filter((s) => s.vehicle_id === id).map((s) => (<li key={s.id}>{driverName.get(s.driver_id)} · {formatAOA(s.weekly_rent_aoa)}/wk · {formatDate(s.valid_from)} → {s.valid_to ? formatDate(s.valid_to) : "current"}</li>))}
             </ul>
+          </Card>
+          <Card title="Dashboard km readings" right={<Link href="/fleet" className="text-xs underline">add</Link>}>
+            {readings.length ? (
+              <Table>
+                <thead><tr><th className={th}>Date</th><th className={thNum}>Dashboard</th><th className={thNum}>Tracker</th><th className={th}>Driver</th></tr></thead>
+                <tbody>
+                  {readings.slice().reverse().map((r) => (
+                    <tr key={r.id}><td className={td}>{formatDate(r.read_on)}</td><td className={tdNum}>{formatKm(r.odometer_km)}</td><td className={tdNum}>{formatKm(r.tracker_km)}</td><td className={td}>{r.driver_id ? driverName.get(r.driver_id) ?? "—" : "—"}</td></tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : <Empty>No readings yet. Enter the km the driver sends on the Fleet page.</Empty>}
           </Card>
           <Card title="Downtime (no rent expected)">
             {downtime.length ? <ul className="space-y-1 text-sm">{downtime.map((d) => <li key={d.id}>{formatDate(d.from_date)} → {formatDate(d.to_date)} · {d.reason}</li>)}</ul> : <Empty>No downtime recorded.</Empty>}

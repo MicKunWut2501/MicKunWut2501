@@ -167,6 +167,11 @@ and every send is logged in `whatsapp_messages`.
   tracker + offset (it may go down). A backdated reading older than an existing one is stored but does not
   recalibrate. **The first reading per car is the starting point**: "km driven" ignores tracker history before it.
   History is listed on /fleet/[id]. Starting point requested by the owner: readings dated 2026-10-17.
+- Starting readings entered 2026-10-17 from the drivers' dashboard photos (tracker snapshot 11:51 UTC):
+  LDA-13-06-AN (Adam) 30 163 km vs tracker 23 923 → offset +6 240; LDA-72-39-AH (Nzenza) 77 632 km vs tracker
+  52 219 → offset +25 413. Photos were unnamed in the upload; matched by the rule dashboard ≥ tracker (the swap
+  would put Nzenza's dashboard 22 000 km below his tracker). LDA-10-53-AG (Raul) still pending: until then its current
+  km is tracker only.
 - **Current mileage** section (`src/components/CurrentKm.tsx`, on /dashboard and at the top of /fleet): per car the
   current km (`vehicles.odometer_km`), km driven in the last 7 and 30 days, average km/day, the next km-based service
   (smallest `km_remaining` from the maintenance reminders, with an estimate in days at the current pace) and the time of

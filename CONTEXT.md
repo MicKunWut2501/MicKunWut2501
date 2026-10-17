@@ -194,6 +194,9 @@ and every send is logged in `whatsapp_messages`.
   added/changed/removed counts. It refuses files whose formula cells have no cached value.
 - Sync log: 2026-10-14 workbook "05.10.2026" → +12 payments (weeks 2026-09-07..09-28), +12 expenses (13 Sep..4 Oct),
   Raul's rent 85 000 from 2026-08-31. Totals after: 105 payments / 10 595 000 Kz, 107 expenses / 1 587 831.06 Kz.
+- Sync log: 2026-10-17 workbook "12.10.2026" → +3 payments (week 2026-10-05), +3 expenses (11 Oct, incl. 57 061.97 on
+  LDA-72-39-AH). Earlier rows verified identical by checksum. Totals after: 108 payments / 10 925 000 Kz, 110 expenses /
+  1 647 893.03 Kz. Note: fresh containers need `python3 -m venv` + `pip install openpyxl` and the local `fleet` DB role.
 - Owner login: michael.wuta@gmail.com (role `owner`), created via SQL with a temporary password given in chat; change it after first sign-in.
 - Public Supabase settings live in `fleet/.env.production` (committed on purpose: URL and anon key are public by design).
   Secrets (`SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ANTHROPIC_API_KEY`) go in the Vercel project settings only.

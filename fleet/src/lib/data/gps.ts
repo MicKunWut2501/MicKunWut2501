@@ -3,6 +3,7 @@ import type { SB } from "./fleet";
 import { fetchBaanoolDevices, hasFix, matchesPlate, mileageToKm, type GpsDevice } from "@/lib/gps/baanool";
 import type { GpsSnapshot, Vehicle } from "@/lib/supabase/types";
 import { num } from "@/lib/supabase/types";
+import { summarizeMileage, type MileagePoint, type MileageSummary } from "@/lib/gps/mileage";
 
 export type GpsSettings = { token: string | null; token_set_at: string | null; mileage_unit: "km" | "m"; last_sync_at: string | null; last_error: string | null };
 
@@ -18,6 +19,39 @@ export async function getLatestGps(sb: SB): Promise<Map<string, GpsSnapshot>> {
     out.set(r.vehicle_id, { ...r, speed_kmh: r.speed_kmh == null ? null : num(r.speed_kmh), mileage_km: r.mileage_km == null ? null : num(r.mileage_km) });
   }
   return out;
+}
+
+/**
+ * Current km and km driven in the last 7 / 30 days per vehicle. Only the readings the summary needs are read
+ * (latest, and the last reading before / first after each window start), so the cost stays flat as history grows.
+ */
+export async function getMileageSummaries(sb: SB, vehicleIds: string[], nowMs: number): Promise<Map<string, MileageSummary>> {
+  const rows = (r: { data: unknown }): MileagePoint[] =>
+    ((r.data ?? []) as MileagePoint[]).map((p) => ({ taken_at: p.taken_at, mileage_km: p.mileage_km == null ? null : num(p.mileage_km) }));
+  const out = new Map<string, MileageSummary>();
+  await Promise.all(vehicleIds.map(async (id) => {
+    const q = () => sb.from("gps_snapshots").select("taken_at, mileage_km").eq("vehicle_id", id).not("mileage_km", "is", null);
+    const starts = [7, 30].map((d) => new Date(nowMs - d * 86_400_000).toISOString());
+    const res = await Promise.all([
+      q().order("taken_at", { ascending: false }).limit(1),
+      ...starts.flatMap((iso) => [
+        q().lte("taken_at", iso).order("taken_at", { ascending: false }).limit(1),
+        q().gt("taken_at", iso).order("taken_at", { ascending: true }).limit(1),
+      ]),
+    ]);
+    out.set(id, summarizeMileage(res.flatMap(rows), nowMs));
+  }));
+  return out;
+}
+
+const STALE_SYNC_MS = 10 * 60 * 1000;
+
+/** Syncs only when the last successful BAANOOL pull is older than 10 minutes, so pages other than /fleet stay fast. */
+export async function syncGpsIfStale(sb: SB, nowMs: number): Promise<GpsSyncResult | null> {
+  const settings = await getGpsSettings(sb);
+  if (!settings?.token) return { status: "no_token" };
+  if (settings.last_sync_at && nowMs - new Date(settings.last_sync_at).getTime() < STALE_SYNC_MS) return null;
+  return syncGps(sb);
 }
 
 export type GpsSyncResult =

@@ -10,7 +10,8 @@ import { fleetMonthComparison, CATEGORY_LABELS } from "@/lib/maintenance/categor
 import { formatAOA, formatDate, formatKm, formatMonth, formatPct } from "@/lib/format";
 import { luandaToday, monthEndOf, monthStartOf, monthsBetween, nowMs } from "@/lib/time";
 import { TrendArrow } from "@/components/TrendArrow";
-import { getLatestGps, syncGps } from "@/lib/data/gps";
+import { getLatestGps, getMileageSummaries, syncGps } from "@/lib/data/gps";
+import { CurrentKm } from "@/components/CurrentKm";
 import { LiveGps } from "./LiveGps";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
     getVehicles(sb), getDrivers(sb), getSchedules(sb), getEvents(sb, { from: month, to: monthEndOf(month) }), getScorecard(sb, today), getLatestGps(sb),
   ]);
   const now = nowMs();
-  const reminders = await getReminders(sb, vehicles, today);
+  const [reminders, mileage] = await Promise.all([getReminders(sb, vehicles, today), getMileageSummaries(sb, vehicles.map((v) => v.id), now)]);
   const driverName = new Map(drivers.map((d) => [d.id, d.full_name]));
   const currentDriver = (vehicleId: string) => schedules.find((s) => s.vehicle_id === vehicleId && s.valid_from <= today && (!s.valid_to || s.valid_to >= today));
   const cmp = fleetMonthComparison(
@@ -41,6 +42,8 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Fleet" subtitle={`${vehicles.length} vehicles`} />
+
+      <div className="mb-6"><CurrentKm vehicles={vehicles} mileage={mileage} reminders={reminders} /></div>
 
       <div className="mb-6"><LiveGps vehicles={vehicles} latest={latestGps} sync={sync} nowMs={now} /></div>
 

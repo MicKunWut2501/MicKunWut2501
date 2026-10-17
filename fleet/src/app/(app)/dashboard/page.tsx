@@ -8,9 +8,11 @@ import { getWeekStatus, getWeekStatusRange, getPayments } from "@/lib/data/rent"
 import { getVehicles } from "@/lib/data/fleet";
 import { getReminders } from "@/lib/data/maintenance";
 import { formatAOA, formatDate, formatDateTime, formatEUR, formatMonth, formatPct, formatWeek } from "@/lib/format";
-import { addDays, luandaToday, weekStartOf } from "@/lib/time";
+import { addDays, luandaToday, nowMs, weekStartOf } from "@/lib/time";
 import { delta } from "@/lib/model/model";
 import type { AgentRun } from "@/lib/supabase/types";
+import { getMileageSummaries, syncGpsIfStale } from "@/lib/data/gps";
+import { CurrentKm } from "@/components/CurrentKm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,9 @@ export default async function DashboardPage() {
 
   const thisWeek = weekStartOf(today);
   const lastWeek = addDays(thisWeek, -7);
+  const now = nowMs();
+  // refresh odometers from BAANOOL when the last pull is older than 10 minutes
+  await syncGpsIfStale(sb, now);
   const [model, week, last, vehicles, briefRes] = await Promise.all([
     getModelVsActual(sb, today),
     getWeekStatus(sb, thisWeek),
@@ -29,7 +34,7 @@ export default async function DashboardPage() {
     getVehicles(sb),
     sb.from("agent_runs").select("*").eq("kind", "weekly_brief").eq("status", "ok").order("ran_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  const reminders = await getReminders(sb, vehicles, today);
+  const [reminders, mileage] = await Promise.all([getReminders(sb, vehicles, today), getMileageSummaries(sb, vehicles.map((v) => v.id), now)]);
   const brief = (briefRes.data as AgentRun | null) ?? null;
   const m = model.thisMonth;
   const t = model.targets;
@@ -72,6 +77,10 @@ export default async function DashboardPage() {
           tone={collect === null ? "neutral" : collect >= 0.95 ? "good" : collect >= 0.8 ? "warn" : "bad"}
           sub={<>{formatAOA(m?.rent_paid_aoa ?? 0)} of {formatAOA(m?.rent_expected_aoa ?? 0)}</>}
         />
+      </div>
+
+      <div className="mt-6">
+        <CurrentKm vehicles={vehicles} mileage={mileage} reminders={reminders} right={<Link href="/fleet" className="text-xs underline">live map</Link>} />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
